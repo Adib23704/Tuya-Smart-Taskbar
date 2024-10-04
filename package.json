@@ -7,9 +7,10 @@
   "type": "module",
   "scripts": {
     "start": "electron .",
-    "build": "electron-packager . tuya-taskbar-app --platform=win32 --arch=x64 --icon=icon.ico",
+    "build": "electron-packager . tuya-taskbar-app --platform=win32 --arch=x64 --icon=icon.png --out dist/",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "dev": "nodemon --exec electron ."
   },
   "repository": {
     "type": "git",
@@ -24,9 +25,17 @@
   "devDependencies": {
     "@eslint/js": "^9.11.1",
     "electron": "^32.1.2",
-    "eslint": "^9.11.1"
+    "electron-packager": "^17.1.2",
+    "eslint": "^9.11.1",
+    "nodemon": "^3.1.7"
   },
   "dependencies": {
-    "@tuya/tuya-connector-nodejs": "^2.1.2"
+    "@tuya/tuya-connector-nodejs": "^2.1.2",
+    "dotenv": "^16.4.5"
+  },
+  "nodemonConfig": {
+    "events": {
+      "start": "cls || clear"
+    }
   }
 }
