@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 let tray = null;
+let currentContextMenu = null;
 let configWindow = null;
 let devices = [];
 let config;
@@ -29,12 +30,15 @@ function saveConfig(config) {
 }
 
 function createTuyaContext() {
-	return new TuyaContext({
-		baseUrl: config.baseUrl,
-		accessKey: config.accessKey,
-		secretKey: config.secretKey,
-	});
-}
+	if (config.baseUrl && config.accessKey && config.secretKey && config.userId) {
+		return new TuyaContext({
+			baseUrl: config.baseUrl,
+			accessKey: config.accessKey,
+			secretKey: config.secretKey,
+		});
+	}
+	return null;
+};
 
 async function fetchDevices() {
 	if (!tuya) return;
@@ -102,26 +106,36 @@ function createDeviceMenu(device, status) {
 }
 
 async function updateMenu() {
-	devices = await fetchDevices();
-	const deviceMenuItems = await Promise.all(
-		devices.map(async (device) => {
-			const status = await fetchDeviceStatus(device.id);
-			return createDeviceMenu(device, status);
-		})
-	);
+	if (!tuya) {
+		currentContextMenu = [
+			{
+				label: 'Open Configuration',
+				click: openConfigWindow,
+			},
+			{ label: 'Quit', role: 'quit' },
+		];
+	} else {
+		devices = await fetchDevices();
+		const deviceMenuItems = await Promise.all(
+			devices.map(async (device) => {
+				const status = await fetchDeviceStatus(device.id);
+				return createDeviceMenu(device, status);
+			})
+		);
 
-	const contextMenu = Menu.buildFromTemplate([
-		...deviceMenuItems,
-		{ type: 'separator' },
-		{
-			label: 'Open Configuration',
-			click: openConfigWindow,
-		},
-		{ label: 'Quit', role: 'quit' },
-	]);
+		currentContextMenu = [
+			...deviceMenuItems,
+			{ type: 'separator' },
+			{
+				label: 'Open Configuration',
+				click: openConfigWindow,
+			},
+			{ label: 'Quit', role: 'quit' },
+		];
+	}
 
-	tray.setContextMenu(contextMenu);
-}
+	tray.setContextMenu(Menu.buildFromTemplate(currentContextMenu));
+};
 
 function openConfigWindow() {
 	if (configWindow) {
@@ -140,6 +154,7 @@ function openConfigWindow() {
 		frame: false,
 		title: 'Tuya Configurations',
 		icon: './icon.ico',
+		autoHideMenuBar: true,
 	});
 
 	configWindow.loadFile('config.html');
@@ -158,13 +173,9 @@ app.whenReady().then(() => {
 	tray.setToolTip('Tuya Smart Device Control');
 
 	config = loadConfig();
-	if (!config.baseUrl || !config.accessKey || !config.secretKey || !config.userId) {
-		openConfigWindow();
-	} else {
-		tuya = createTuyaContext();
-		updateMenu();
-		startAutoRefresh();
-	}
+	tuya = createTuyaContext();
+	updateMenu();
+	startAutoRefresh();
 
 	ipcMain.on('save-config', (event, newConfig) => {
 		config = newConfig;
