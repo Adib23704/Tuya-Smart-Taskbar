@@ -1,23 +1,48 @@
-import { app, Menu, Tray } from 'electron';
+import { app, Menu, Tray, BrowserWindow, ipcMain } from 'electron';
 import { TuyaContext } from '@tuya/tuya-connector-nodejs';
-import 'dotenv/config';
-import process from 'process';
+import fs from 'fs';
+import path from 'path';
 
 let tray = null;
 let currentContextMenu = null;
+let configWindow = null;
 let devices = [];
+let config;
+let tuya;
 
-const tuya = new TuyaContext({
-	baseUrl: process.env.TUYA_BASE_URL,
-	accessKey: process.env.TUYA_ACCESS_KEY,
-	secretKey: process.env.TUYA_SECRET_KEY,
-});
+const configPath = path.join(app.getPath('userData'), 'config.json');
 
-const fetchDevices = async () => {
+function loadConfig() {
+	if (fs.existsSync(configPath)) {
+		const configFile = fs.readFileSync(configPath);
+		return JSON.parse(configFile);
+	}
+	return {
+		baseUrl: '',
+		accessKey: '',
+		secretKey: '',
+		userId: '',
+	};
+};
+
+function saveConfig(config) {
+	fs.writeFileSync(configPath, JSON.stringify(config));
+};
+
+function createTuyaContext() {
+	return new TuyaContext({
+		baseUrl: config.baseUrl,
+		accessKey: config.accessKey,
+		secretKey: config.secretKey,
+	});
+};
+
+async function fetchDevices() {
+	if (!tuya) return;
 	try {
 		const response = await tuya.request({
 			method: 'GET',
-			path: `/v1.0/users/${process.env.TUYA_USER_ID}/devices`,
+			path: `/v1.0/users/${config.userId}/devices`,
 		});
 		return response.result;
 	} catch (error) {
@@ -26,7 +51,8 @@ const fetchDevices = async () => {
 	}
 };
 
-const fetchDeviceStatus = async (deviceId) => {
+async function fetchDeviceStatus(deviceId) {
+	if (!tuya) return;
 	try {
 		const response = await tuya.request({
 			method: 'GET',
@@ -39,7 +65,8 @@ const fetchDeviceStatus = async (deviceId) => {
 	}
 };
 
-const toggleDeviceState = async (deviceId, code, currentState) => {
+async function toggleDeviceState(deviceId, code, currentState) {
+	if (!tuya) return;
 	try {
 		const command = {
 			commands: [
@@ -59,11 +86,11 @@ const toggleDeviceState = async (deviceId, code, currentState) => {
 	}
 };
 
-const createDeviceMenu = (device, status) => {
-	let statusItems = status.map((s) => {
+function createDeviceMenu(device, status) {
+	const statusItems = status.map((s) => {
 		return {
 			label: `${s.code} - ${s.value ? 'On' : 'Off'}`,
-			click: async (_menuItem) => {
+			click: async () => {
 				await toggleDeviceState(device.id, s.code, s.value);
 				updateMenu();
 			},
@@ -71,15 +98,13 @@ const createDeviceMenu = (device, status) => {
 		};
 	});
 
-	statusItems = statusItems.filter((item) => item !== null);
-
 	return {
 		label: device.name,
 		submenu: statusItems,
 	};
 };
 
-const updateMenu = async () => {
+async function updateMenu() {
 	devices = await fetchDevices();
 	const deviceMenuItems = await Promise.all(
 		devices.map(async (device) => {
@@ -91,22 +116,87 @@ const updateMenu = async () => {
 	currentContextMenu = [
 		...deviceMenuItems,
 		{ type: 'separator' },
+		{
+			label: 'Open Configuration',
+			click: openConfigWindow,
+		},
 		{ label: 'Quit', role: 'quit' },
 	];
 
 	tray.setContextMenu(Menu.buildFromTemplate(currentContextMenu));
 };
 
-const startAutoRefresh = () => {
+function openConfigWindow() {
+	if (configWindow) {
+		configWindow.focus();
+		return;
+	}
+
+	configWindow = new BrowserWindow({
+		width: 400,
+		height: 300,
+		webPreferences: {
+			nodeIntegration: true,
+			contextIsolation: false,
+		},
+	});
+
+	configWindow.loadURL(`data:text/html;charset=UTF-8,
+    <html>
+      <body>
+        <h2>Configuration</h2>
+        <form>
+          <label for="baseUrl">Base URL:</label><br>
+          <input type="text" id="baseUrl" value="${config.baseUrl}" /><br><br>
+          <label for="accessKey">Access Key:</label><br>
+          <input type="text" id="accessKey" value="${config.accessKey}" /><br><br>
+          <label for="secretKey">Secret Key:</label><br>
+          <input type="text" id="secretKey" value="${config.secretKey}" /><br><br>
+          <label for="userId">User ID:</label><br>
+          <input type="text" id="userId" value="${config.userId}" /><br><br>
+          <button onclick="saveConfig()">Save</button>
+        </form>
+        <script>
+          const { ipcRenderer } = require('electron');
+          function saveConfig() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const accessKey = document.getElementById('accessKey').value;
+            const secretKey = document.getElementById('secretKey').value;
+            const userId = document.getElementById('userId').value;
+            ipcRenderer.send('save-config', { baseUrl, accessKey, secretKey, userId });
+          }
+        </script>
+      </body>
+    </html>`);
+
+	configWindow.on('closed', () => {
+		configWindow = null;
+	});
+};
+
+app.whenReady().then(() => {
+	tray = new Tray('./icon.ico');
+	tray.setToolTip('Tuya Smart Device Control');
+
+	config = loadConfig();
+	if (!config.baseUrl || !config.accessKey || !config.secretKey || !config.userId) {
+		openConfigWindow();
+	} else {
+		tuya = createTuyaContext();
+		updateMenu();
+		startAutoRefresh();
+	}
+
+	ipcMain.on('save-config', (event, newConfig) => {
+		config = newConfig;
+		saveConfig(config);
+		tuya = createTuyaContext();
+		updateMenu();
+	});
+});
+
+function startAutoRefresh() {
 	setInterval(async () => {
 		await updateMenu();
 	}, 5000);
 };
-
-app.whenReady().then(async () => {
-	tray = new Tray('./icon.ico');
-	tray.setToolTip('Tuya Smart Device Control');
-
-	await updateMenu();
-	startAutoRefresh();
-});

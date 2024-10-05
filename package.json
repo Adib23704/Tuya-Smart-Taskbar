@@ -30,8 +30,7 @@
     "nodemon": "^3.1.7"
   },
   "dependencies": {
-    "@tuya/tuya-connector-nodejs": "^2.1.2",
-    "dotenv": "^16.4.5"
+    "@tuya/tuya-connector-nodejs": "^2.1.2"
   },
   "nodemonConfig": {
     "events": {
