@@ -138,6 +138,8 @@ function openConfigWindow() {
 			contextIsolation: false,
 		},
 		frame: false,
+		title: 'Tuya Configurations',
+		icon: './icon.ico',
 	});
 
 	configWindow.loadFile('config.html');
