@@ -172,12 +172,12 @@ function openConfigWindow() {
 			contextIsolation: false,
 		},
 		frame: false,
-		title: 'Tuya Configurations',
+		title: 'Smart Taskbar Config',
 		icon: defaultIconPath,
 		autoHideMenuBar: true,
 	});
 
-	configWindow.loadFile('config.html');
+	configWindow.loadFile('html/config.html');
 
 	configWindow.on('closed', () => {
 		configWindow = null;
@@ -190,7 +190,7 @@ function openConfigWindow() {
 
 app.whenReady().then(() => {
 	tray = new Tray(defaultIconPath);
-	tray.setToolTip('Tuya Smart Device Control');
+	tray.setToolTip('Tuya Smart Taskbar');
 
 	config = loadConfig();
 	tuya = createTuyaContext();

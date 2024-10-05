@@ -1,31 +1,27 @@
 {
-  "name": "tuya-taskbar-app",
-  "version": "1.0.0",
+  "name": "tuya-smart-taskbar",
+  "version": "1.0",
   "private": true,
-  "description": "Windows Taskbar App for controlling Tuya Smart Switches using ElectronJS",
+  "description": "Windows Taskbar App for controlling Tuya Smart Switches",
   "main": "main.js",
   "type": "module",
   "scripts": {
     "start": "electron .",
-    "build": "electron-packager . tuya-taskbar-app --platform=win32 --arch=x64 --icon=icon.png --out dist/",
+    "build": "node build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "dev": "nodemon --exec electron ."
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Adib23704/Tuya-Taskbar-App.git"
+    "url": "git+https://github.com/Adib23704/Tuya-Smart-Taskbar.git"
   },
   "author": "Adib23704",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Adib23704/Tuya-Taskbar-App/issues"
-  },
-  "homepage": "https://github.com/Adib23704/Tuya-Taskbar-App#readme",
   "devDependencies": {
     "@eslint/js": "^9.11.1",
     "electron": "^32.1.2",
-    "electron-packager": "^17.1.2",
+    "electron-builder": "^25.1.7",
     "eslint": "^9.11.1",
     "nodemon": "^3.1.7"
   },
