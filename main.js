@@ -4,7 +4,6 @@ import fs from 'fs';
 import path from 'path';
 
 let tray = null;
-let currentContextMenu = null;
 let configWindow = null;
 let devices = [];
 let config;
@@ -23,11 +22,11 @@ function loadConfig() {
 		secretKey: '',
 		userId: '',
 	};
-};
+}
 
 function saveConfig(config) {
 	fs.writeFileSync(configPath, JSON.stringify(config));
-};
+}
 
 function createTuyaContext() {
 	return new TuyaContext({
@@ -35,7 +34,7 @@ function createTuyaContext() {
 		accessKey: config.accessKey,
 		secretKey: config.secretKey,
 	});
-};
+}
 
 async function fetchDevices() {
 	if (!tuya) return;
@@ -49,7 +48,7 @@ async function fetchDevices() {
 		console.error('Error fetching devices:', error);
 		return [];
 	}
-};
+}
 
 async function fetchDeviceStatus(deviceId) {
 	if (!tuya) return;
@@ -63,7 +62,7 @@ async function fetchDeviceStatus(deviceId) {
 		console.error('Error fetching device status:', error);
 		return [];
 	}
-};
+}
 
 async function toggleDeviceState(deviceId, code, currentState) {
 	if (!tuya) return;
@@ -84,25 +83,23 @@ async function toggleDeviceState(deviceId, code, currentState) {
 	} catch (error) {
 		console.error('Error toggling device state:', error);
 	}
-};
+}
 
 function createDeviceMenu(device, status) {
-	const statusItems = status.map((s) => {
-		return {
-			label: `${s.code} - ${s.value ? 'On' : 'Off'}`,
-			click: async () => {
-				await toggleDeviceState(device.id, s.code, s.value);
-				updateMenu();
-			},
-			enabled: typeof s.value === 'boolean',
-		};
-	});
+	const statusItems = status.map((s) => ({
+		label: `${s.code} - ${s.value ? 'On' : 'Off'}`,
+		click: async () => {
+			await toggleDeviceState(device.id, s.code, s.value);
+			updateMenu();
+		},
+		enabled: typeof s.value === 'boolean',
+	}));
 
 	return {
 		label: device.name,
 		submenu: statusItems,
 	};
-};
+}
 
 async function updateMenu() {
 	devices = await fetchDevices();
@@ -113,7 +110,7 @@ async function updateMenu() {
 		})
 	);
 
-	currentContextMenu = [
+	const contextMenu = Menu.buildFromTemplate([
 		...deviceMenuItems,
 		{ type: 'separator' },
 		{
@@ -121,10 +118,10 @@ async function updateMenu() {
 			click: openConfigWindow,
 		},
 		{ label: 'Quit', role: 'quit' },
-	];
+	]);
 
-	tray.setContextMenu(Menu.buildFromTemplate(currentContextMenu));
-};
+	tray.setContextMenu(contextMenu);
+}
 
 function openConfigWindow() {
 	if (configWindow) {
@@ -134,45 +131,25 @@ function openConfigWindow() {
 
 	configWindow = new BrowserWindow({
 		width: 400,
-		height: 300,
+		height: 500,
+		resizable: false,
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
 		},
+		frame: false,
 	});
 
-	configWindow.loadURL(`data:text/html;charset=UTF-8,
-    <html>
-      <body>
-        <h2>Configuration</h2>
-        <form>
-          <label for="baseUrl">Base URL:</label><br>
-          <input type="text" id="baseUrl" value="${config.baseUrl}" /><br><br>
-          <label for="accessKey">Access Key:</label><br>
-          <input type="text" id="accessKey" value="${config.accessKey}" /><br><br>
-          <label for="secretKey">Secret Key:</label><br>
-          <input type="text" id="secretKey" value="${config.secretKey}" /><br><br>
-          <label for="userId">User ID:</label><br>
-          <input type="text" id="userId" value="${config.userId}" /><br><br>
-          <button onclick="saveConfig()">Save</button>
-        </form>
-        <script>
-          const { ipcRenderer } = require('electron');
-          function saveConfig() {
-            const baseUrl = document.getElementById('baseUrl').value;
-            const accessKey = document.getElementById('accessKey').value;
-            const secretKey = document.getElementById('secretKey').value;
-            const userId = document.getElementById('userId').value;
-            ipcRenderer.send('save-config', { baseUrl, accessKey, secretKey, userId });
-          }
-        </script>
-      </body>
-    </html>`);
+	configWindow.loadFile('config.html');
 
 	configWindow.on('closed', () => {
 		configWindow = null;
 	});
-};
+
+	configWindow.webContents.on('did-finish-load', () => {
+		configWindow.webContents.send('config-data', config);
+	});
+}
 
 app.whenReady().then(() => {
 	tray = new Tray('./icon.ico');
@@ -193,10 +170,14 @@ app.whenReady().then(() => {
 		tuya = createTuyaContext();
 		updateMenu();
 	});
+
+	app.on('window-all-closed', (event) => {
+		event.preventDefault();
+	});
 });
 
 function startAutoRefresh() {
 	setInterval(async () => {
 		await updateMenu();
 	}, 5000);
-};
+}
