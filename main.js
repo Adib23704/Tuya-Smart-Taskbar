@@ -173,7 +173,7 @@ function openConfigWindow() {
 		},
 		frame: false,
 		title: 'Tuya Configurations',
-		icon: './icon.ico',
+		icon: defaultIconPath,
 		autoHideMenuBar: true,
 	});
 
