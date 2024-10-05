@@ -104,7 +104,7 @@ async function toggleDeviceState(deviceId, code, currentState) {
 
 function createDeviceMenu(device, status) {
 	const statusItems = status.map((s) => ({
-		label: `${s.code} - ${s.value ? 'On' : 'Off'}`,
+		label: `${(s.code.charAt(0).toUpperCase() + s.code.slice(1)).replace(/_/g, ' ')} - ${s.value ? 'On' : 'Off'}`,
 		click: async () => {
 			await toggleDeviceState(device.id, s.code, s.value);
 			updateMenu();
@@ -130,12 +130,17 @@ async function updateMenu(auto = false) {
 	} else {
 		if (!auto) setTrayIconLoading(true);
 		devices = await fetchDevices();
-		const deviceMenuItems = await Promise.all(
+		let deviceMenuItems = await Promise.all(
 			devices.map(async (device) => {
-				const status = await fetchDeviceStatus(device.id);
-				return createDeviceMenu(device, status);
+				if (device.online) {
+					const status = await fetchDeviceStatus(device.id);
+					return createDeviceMenu(device, status);
+				}
+				return null;
 			})
 		);
+
+		deviceMenuItems = deviceMenuItems.filter((item) => item !== null);
 
 		currentContextMenu = [
 			...deviceMenuItems,
