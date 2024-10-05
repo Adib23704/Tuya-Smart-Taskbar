@@ -14,8 +14,8 @@ let config;
 let tuya;
 
 const configPath = path.join(app.getPath('userData'), 'config.json');
-const defaultIconPath = path.join(__dirname, 'icon.ico');
-const loadingIconPath = path.join(__dirname, 'loading.ico');
+const defaultIconPath = path.join(__dirname, 'assets/icon.ico');
+const loadingIconPath = path.join(__dirname, 'assets/loading.ico');
 
 function loadConfig() {
 	if (fs.existsSync(configPath)) {
