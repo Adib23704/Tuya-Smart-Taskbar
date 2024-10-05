@@ -2,6 +2,9 @@ import { app, Menu, Tray, BrowserWindow, ipcMain } from 'electron';
 import { TuyaContext } from '@tuya/tuya-connector-nodejs';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let tray = null;
 let currentContextMenu = null;
@@ -11,6 +14,8 @@ let config;
 let tuya;
 
 const configPath = path.join(app.getPath('userData'), 'config.json');
+const defaultIconPath = path.join(__dirname, 'icon.ico');
+const loadingIconPath = path.join(__dirname, 'loading.ico');
 
 function loadConfig() {
 	if (fs.existsSync(configPath)) {
@@ -39,6 +44,14 @@ function createTuyaContext() {
 	}
 	return null;
 };
+
+function setTrayIconLoading(isLoading) {
+	if (isLoading) {
+		tray.setImage(loadingIconPath);
+	} else {
+		tray.setImage(defaultIconPath);
+	}
+}
 
 async function fetchDevices() {
 	if (!tuya) return;
@@ -105,7 +118,7 @@ function createDeviceMenu(device, status) {
 	};
 }
 
-async function updateMenu() {
+async function updateMenu(auto = false) {
 	if (!tuya) {
 		currentContextMenu = [
 			{
@@ -115,6 +128,7 @@ async function updateMenu() {
 			{ label: 'Quit', role: 'quit' },
 		];
 	} else {
+		if (!auto) setTrayIconLoading(true);
 		devices = await fetchDevices();
 		const deviceMenuItems = await Promise.all(
 			devices.map(async (device) => {
@@ -135,6 +149,7 @@ async function updateMenu() {
 	}
 
 	tray.setContextMenu(Menu.buildFromTemplate(currentContextMenu));
+	if (!auto) setTrayIconLoading(false);
 };
 
 function openConfigWindow() {
@@ -169,7 +184,7 @@ function openConfigWindow() {
 }
 
 app.whenReady().then(() => {
-	tray = new Tray('./icon.ico');
+	tray = new Tray(defaultIconPath);
 	tray.setToolTip('Tuya Smart Device Control');
 
 	config = loadConfig();
@@ -191,6 +206,6 @@ app.whenReady().then(() => {
 
 function startAutoRefresh() {
 	setInterval(async () => {
-		await updateMenu();
+		await updateMenu(true);
 	}, 5000);
 }
