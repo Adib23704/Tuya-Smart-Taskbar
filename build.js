@@ -10,14 +10,14 @@ builder.build({
 			output: 'dist',
 		},
 		files: [
-			'main.js',             // Your main application code
-			'html/**/*',            // HTML folder for config.html
-			'assets/**/*',          // Assets (icons, etc.)
+			'main.js',
+			'html/**/*',
+			'assets/**/*',
 		],
 		win: {
 			target: ['msi'],
-			icon: 'assets/icon.ico',  // The main icon for the installer
-			artifactName: '${productName}-${version}-setup.${ext}',  // Naming format
+			icon: 'assets/icon.ico',
+			artifactName: '${productName}-${version}-setup.${ext}',
 		},
 		msi: {
 			oneClick: false,
@@ -28,7 +28,7 @@ builder.build({
 			from: 'assets/',
 			to: 'resources/assets'
 		},
-		compression: 'store',
+		compression: 'maximum',
 	}
 }).then(() => {
 	console.log('Build complete!');

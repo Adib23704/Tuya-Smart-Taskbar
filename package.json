@@ -1,6 +1,6 @@
 {
   "name": "tuya-smart-taskbar",
-  "version": "1.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Windows Taskbar App for controlling Tuya Smart Switches",
   "main": "main.js",
