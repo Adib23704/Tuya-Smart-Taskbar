@@ -103,7 +103,7 @@ async function toggleDeviceState(deviceId, code, currentState) {
 }
 
 function createDeviceMenu(device, status) {
-	const statusItems = status.map((s) => ({
+	let statusItems = status.map((s) => ({
 		label: `${(s.code.charAt(0).toUpperCase() + s.code.slice(1)).replace(/_/g, ' ')} - ${s.value ? 'On' : 'Off'}`,
 		click: async () => {
 			await toggleDeviceState(device.id, s.code, s.value);
@@ -111,6 +111,8 @@ function createDeviceMenu(device, status) {
 		},
 		enabled: typeof s.value === 'boolean',
 	}));
+
+	statusItems = statusItems.filter((item) => item.enabled);
 
 	return {
 		label: device.name,
