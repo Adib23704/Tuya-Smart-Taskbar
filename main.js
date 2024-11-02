@@ -263,17 +263,6 @@ function openConfigWindow() {
 	});
 }
 
-function checkStartupStatus() {
-	const settings = app.getLoginItemSettings();
-	console.log('Startup Settings:', {
-		openAtLogin: settings.openAtLogin,
-		openAsHidden: settings.openAsHidden,
-		wasOpenedAtLogin: settings.wasOpenedAtLogin,
-		wasOpenedAsHidden: settings.wasOpenedAsHidden,
-		restoreState: settings.restoreState
-	});
-}
-
 app.whenReady().then(() => {
 	tray = new Tray(defaultIconPath);
 	tray.setToolTip('Tuya Smart Taskbar');
@@ -283,7 +272,6 @@ app.whenReady().then(() => {
 	tuya = createTuyaContext();
 	updateMenu();
 	startAutoRefresh();
-	checkStartupStatus(); // Check at startup
 
 	ipcMain.on('save-config', (event, newConfig) => {
 		config = newConfig;
@@ -291,7 +279,6 @@ app.whenReady().then(() => {
 		updateStartupSettings(config.runOnStartup);
 		tuya = createTuyaContext();
 		updateMenu();
-		checkStartupStatus(); // Check after config save
 	});
 
 	app.on('window-all-closed', (event) => {
