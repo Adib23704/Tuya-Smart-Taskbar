@@ -34,14 +34,20 @@ jobs:
         run: sudo apt-get install -y wine
 
       - name: Build the app (Windows)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         if: matrix.os == 'windows-latest'
         run: npm run build -- --windows
 
       - name: Build the app (macOS)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         if: matrix.os == 'macos-latest'
         run: npm run build -- --macos
 
       - name: Build the app (Linux)
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         if: matrix.os == 'ubuntu-latest'
         run: npm run build -- --linux
 
@@ -62,4 +68,4 @@ jobs:
             dist/*.AppImage
             dist/*.deb
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
