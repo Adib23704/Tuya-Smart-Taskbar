@@ -26,25 +26,24 @@ jobs:
         run: npm install
 
       - name: Conditional Step
-        shell: bash
-        run: |
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            npm install dmg-license --save
-          fi
+				if: matrix.os == 'macos-latest'
+        run: npm install dmg-license --save
 
       - name: Install Wine (Linux Only)
         if: runner.os == 'Linux'
         run: sudo apt-get install -y wine
 
-      - name: Build the app
-        run: |
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            npm run build -- --windows
-          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            npm run build -- --macos
-          else
-            npm run build -- --linux
-          fi
+			- name: Build the app (Windows)
+				if: matrix.os == 'windows-latest'
+				run: npm run build -- --windows
+
+			- name: Build the app (macOS)
+				if: matrix.os == 'macos-latest'
+				run: npm run build -- --macos
+
+			- name: Build the app (Linux)
+				if: matrix.os == 'ubuntu-latest'
+				run: npm run build -- --linux
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
