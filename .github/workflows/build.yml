@@ -39,11 +39,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: npm run build -- --windows
 
-      - name: Build the app (macOS)
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        if: matrix.os == 'macos-latest'
-        run: npm run build -- --macos
+      # - name: Build the app (macOS)
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      #   if: matrix.os == 'macos-latest'
+      #   run: npm run build -- --macos
 
       - name: Build the app (Linux)
         env:
