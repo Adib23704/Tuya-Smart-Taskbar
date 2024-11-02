@@ -23,11 +23,14 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
+        run: npm install
+
+			- name: Conditional Step
+        shell: bash
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
             npm install dmg-license --save
           fi
-          npm install
 
       - name: Install Wine (Linux Only)
         if: runner.os == 'Linux'
