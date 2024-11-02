@@ -20,8 +20,10 @@
     "type": "git",
     "url": "git+https://github.com/Adib23704/Tuya-Smart-Taskbar.git"
   },
-  "author": "Adib23704",
-  "email": "adib23704@gmail.com",
+  "author": {
+    "name": "Adib23704",
+    "email": "adib23704@gmail.com"
+  },
   "url": "https://adib.lol",
   "license": "MIT",
   "devDependencies": {
