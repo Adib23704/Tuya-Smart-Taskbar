@@ -46,10 +46,8 @@
     "ext": "js,html"
   },
   "build": {
-    "publish": [
-      {
-        "provider": "github"
-      }
-    ]
+    "win": {
+      "sign": false
+    }
   }
 }
