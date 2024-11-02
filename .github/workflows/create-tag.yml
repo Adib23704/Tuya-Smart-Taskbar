@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Get version from package.json
         id: get_version
@@ -19,7 +19,9 @@ jobs:
 
       - name: Create Tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git tag $VERSION
-          git push origin $VERSION
+          git push https://x-access-token:${GH_TOKEN}@github.com/Adib23704/Tuya-Taskbar-App.git $VERSION
