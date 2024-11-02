@@ -1,41 +1,30 @@
 import builder from 'electron-builder';
 import process from 'process';
 
-const Platform = builder.Platform;
+const { Platform } = builder;
 
 const args = process.argv.slice(2);
-const buildWindows = args.includes('--windows');
-const buildMacOS = args.includes('--macos');
-const buildLinux = args.includes('--linux');
-const buildAll = args.includes('--all') || (buildWindows && buildMacOS && buildLinux);
+const buildAll = args.includes('--all');
+const buildTargets = {
+	windows: args.includes('--windows') || buildAll,
+	mac: args.includes('--macos') || buildAll,
+	linux: args.includes('--linux') || buildAll,
+};
 
-let targets = [];
+const selectedTargets = [];
 
-if (buildAll) {
-	targets = [
-		Platform.WINDOWS.createTarget(),
-		Platform.MAC.createTarget(),
-		Platform.LINUX.createTarget()
-	];
-} else {
-	if (buildWindows) {
-		targets.push(Platform.WINDOWS.createTarget());
-	}
-	if (buildMacOS) {
-		targets.push(Platform.MAC.createTarget());
-	}
-	if (buildLinux) {
-		targets.push(Platform.LINUX.createTarget());
-	}
-	if (targets.length === 0) {
-		targets.push(Platform.current().createTarget());
-	}
+if (buildTargets.windows) selectedTargets.push(Platform.WINDOWS.createTarget());
+if (buildTargets.mac) selectedTargets.push(Platform.MAC.createTarget());
+if (buildTargets.linux) selectedTargets.push(Platform.LINUX.createTarget());
+
+if (selectedTargets.length === 0) {
+	selectedTargets.push(Platform.current().createTarget());
 }
 
 const config = {
 	directories: {
 		output: 'dist',
-		buildResources: 'assets'
+		buildResources: 'assets',
 	},
 	files: [
 		'**/*',
@@ -56,32 +45,38 @@ const config = {
 	asar: true,
 	win: {
 		target: ['nsis', 'msi'],
-		icon: 'assets/icon.ico'
+		icon: 'assets/icon.ico',
 	},
 	mac: {
-		target: ['dmg'],
-		icon: 'assets/icon.icns'
+		target: ['dmg', 'zip'],
+		icon: 'assets/icon.icns',
 	},
 	linux: {
 		target: ['AppImage', 'deb'],
 		icon: 'assets/icon.png',
-		category: 'Utility'
+		category: 'Utility',
 	},
 	nsis: {
 		oneClick: false,
 		allowToChangeInstallationDirectory: true,
 		createDesktopShortcut: true,
-		createStartMenuShortcut: true
+		createStartMenuShortcut: true,
 	},
 	msi: {
-		oneClick: false
+		oneClick: false,
+		createDesktopShortcut: true,
+		createStartMenuShortcut: true,
 	}
 };
 
-Promise.all(targets.map(target => builder.build({
-	targets: target,
-	config: config
-})))
+Promise.all(
+	selectedTargets.map((target) =>
+		builder.build({
+			targets: target,
+			config: config,
+		})
+	)
+)
 	.then(() => {
 		console.log('Build complete for all specified platforms!');
 	})

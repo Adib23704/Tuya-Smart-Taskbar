@@ -42,5 +42,12 @@
       "start": "cls || clear"
     },
     "ext": "js,html"
+  },
+  "build": {
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
   }
 }

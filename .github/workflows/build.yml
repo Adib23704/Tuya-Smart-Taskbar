@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release Electron App
 
 on:
   push:
@@ -6,61 +6,49 @@ on:
       - master
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    
+  release:
+    runs-on: ubuntu-latest
+
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        
+
     steps:
-      - name: Check out Git repository
+      - name: Check out the code
         uses: actions/checkout@v4
 
-      - name: Setup NodeJS
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
-        
-      - name: Build Windows
-        if: matrix.os == 'windows-latest'
-        run: npm run build:windows
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build macOS
-        if: matrix.os == 'macos-latest'
-        run: npm run build:macos
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
+      - name: Build the app
         run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm
-          npm run build:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            npm run build -- --windows
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            npm run build -- --macos
+          else
+            npm run build -- --linux
+          fi
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: build-${{ github.sha }}
-          name: Build ${{ github.sha }}
-          draft: false
-          prerelease: false
+          name: "${{ matrix.os }}-build"
+          path: dist/
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
           files: |
             dist/*.exe
             dist/*.msi
             dist/*.dmg
             dist/*.zip
-            dist/*.deb
-            dist/*.rpm
             dist/*.AppImage
-          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
