@@ -35,6 +35,13 @@ function saveConfig(config) {
 	fs.writeFileSync(configPath, JSON.stringify(config));
 }
 
+function updateStartupSettings(runOnStartup) {
+	app.setLoginItemSettings({
+		openAtLogin: runOnStartup,
+		openAsHidden: runOnStartup
+	});
+}
+
 function createTuyaContext() {
 	if (config.baseUrl && config.accessKey && config.secretKey && config.userId) {
 		return new TuyaContext({
@@ -43,17 +50,7 @@ function createTuyaContext() {
 			secretKey: config.secretKey,
 		});
 	}
-	if (config.runOnStartup) {
-		app.setLoginItemSettings({
-			openAtLogin: true,
-			openAsHidden: true,
-		});
-	} else {
-		app.setLoginItemSettings({
-			openAtLogin: false,
-			openAsHidden: false,
-		});
-	}
+
 	return null;
 };
 
@@ -266,20 +263,35 @@ function openConfigWindow() {
 	});
 }
 
+function checkStartupStatus() {
+	const settings = app.getLoginItemSettings();
+	console.log('Startup Settings:', {
+		openAtLogin: settings.openAtLogin,
+		openAsHidden: settings.openAsHidden,
+		wasOpenedAtLogin: settings.wasOpenedAtLogin,
+		wasOpenedAsHidden: settings.wasOpenedAsHidden,
+		restoreState: settings.restoreState
+	});
+}
+
 app.whenReady().then(() => {
 	tray = new Tray(defaultIconPath);
 	tray.setToolTip('Tuya Smart Taskbar');
 
 	config = loadConfig();
+	updateStartupSettings(config.runOnStartup);
 	tuya = createTuyaContext();
 	updateMenu();
 	startAutoRefresh();
+	checkStartupStatus(); // Check at startup
 
 	ipcMain.on('save-config', (event, newConfig) => {
 		config = newConfig;
 		saveConfig(config);
+		updateStartupSettings(config.runOnStartup);
 		tuya = createTuyaContext();
 		updateMenu();
+		checkStartupStatus(); // Check after config save
 	});
 
 	app.on('window-all-closed', (event) => {
