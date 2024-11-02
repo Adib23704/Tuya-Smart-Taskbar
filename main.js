@@ -3,7 +3,6 @@ import { TuyaContext } from '@tuya/tuya-connector-nodejs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import process from 'process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,11 +13,9 @@ let devices = [];
 let config;
 let tuya;
 
-const iconExtension = process.platform === 'win32' ? 'ico' : 'png';
-const defaultIconPath = path.join(__dirname, `assets/icon.${iconExtension}`);
-const loadingIconPath = path.join(__dirname, `assets/loading.${iconExtension}`);
-
 const configPath = path.join(app.getPath('userData'), 'config.json');
+const defaultIconPath = path.join(__dirname, 'assets/icon.ico');
+const loadingIconPath = path.join(__dirname, 'assets/loading.ico');
 
 function loadConfig() {
 	if (fs.existsSync(configPath)) {
@@ -39,43 +36,10 @@ function saveConfig(config) {
 }
 
 function updateStartupSettings(runOnStartup) {
-	if (process.platform === 'darwin') {
-		app.setLoginItemSettings({
-			openAtLogin: runOnStartup,
-			openAsHidden: true,
-			path: process.execPath,
-		});
-	} else if (process.platform === 'win32') {
-		app.setLoginItemSettings({
-			openAtLogin: runOnStartup,
-			openAsHidden: runOnStartup,
-		});
-	} else if (process.platform === 'linux') {
-		const desktopEntry = path.join(
-			app.getPath('home'),
-			'.config/autostart',
-			'tuya-smart-taskbar.desktop'
-		);
-
-		if (runOnStartup) {
-			const desktopFile = `[Desktop Entry]
-Type=Application
-Version=1.0
-Name=Tuya Smart Taskbar
-Comment=Taskbar App for controlling Tuya Smart Switches
-Exec="${process.execPath}"
-Icon=${defaultIconPath}
-Terminal=false
-Categories=Utility;`;
-
-			fs.mkdirSync(path.dirname(desktopEntry), { recursive: true });
-			fs.writeFileSync(desktopEntry, desktopFile);
-		} else {
-			if (fs.existsSync(desktopEntry)) {
-				fs.unlinkSync(desktopEntry);
-			}
-		}
-	}
+	app.setLoginItemSettings({
+		openAtLogin: runOnStartup,
+		openAsHidden: runOnStartup
+	});
 }
 
 function createTuyaContext() {
@@ -300,17 +264,8 @@ function openConfigWindow() {
 }
 
 app.whenReady().then(() => {
-	if (process.platform === 'darwin') {
-		tray = new Tray(path.join(__dirname, 'assets/icon-template.png'));
-	} else {
-		tray = new Tray(defaultIconPath);
-	}
-
+	tray = new Tray(defaultIconPath);
 	tray.setToolTip('Tuya Smart Taskbar');
-
-	if (process.platform === 'darwin') {
-		app.dock.hide();
-	}
 
 	config = loadConfig();
 	updateStartupSettings(config.runOnStartup);

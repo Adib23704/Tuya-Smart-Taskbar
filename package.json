@@ -2,16 +2,12 @@
   "name": "tuya-smart-taskbar",
   "version": "1.0.2",
   "private": true,
-  "description": "Taskbar App for controlling Tuya Smart Switches",
+  "description": "Windows Taskbar App for controlling Tuya Smart Switches",
   "main": "main.js",
   "type": "module",
   "scripts": {
     "start": "electron .",
     "build": "node build.js",
-    "build:windows": "node build.js --windows",
-    "build:macos": "node build.js --macos",
-    "build:linux": "node build.js --linux",
-    "build:all": "node build.js --all",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "dev": "nodemon --exec electron ."
@@ -20,16 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/Adib23704/Tuya-Smart-Taskbar.git"
   },
-  "author": {
-    "name": "Adib23704",
-    "email": "adib23704@gmail.com"
-  },
-  "url": "https://adib.lol",
+  "author": "Zahin A. Adib <adib23704@gmail.com> (https://adib.lol/)",
   "license": "MIT",
   "devDependencies": {
-    "@electron-forge/maker-deb": "^7.5.0",
-    "@electron-forge/maker-dmg": "^7.5.0",
-    "@electron-forge/maker-rpm": "^7.5.0",
     "@eslint/js": "^9.11.1",
     "electron": "^32.1.2",
     "electron-builder": "^25.1.7",
@@ -44,10 +33,5 @@
       "start": "cls || clear"
     },
     "ext": "js,html"
-  },
-  "build": {
-    "win": {
-      "sign": false
-    }
   }
 }
