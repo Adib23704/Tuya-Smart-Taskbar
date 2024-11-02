@@ -88,7 +88,7 @@ async function toggleDeviceState(deviceId, code, currentState) {
 			commands: [
 				{
 					code,
-					value: !currentState,
+					value: (typeof currentState === 'boolean') ? !currentState : currentState,
 				},
 			],
 		};
@@ -103,22 +103,76 @@ async function toggleDeviceState(deviceId, code, currentState) {
 }
 
 function createDeviceMenu(device, status) {
-	let statusItems = status.map((s) => ({
-		label: `${(s.code.charAt(0).toUpperCase() + s.code.slice(1)).replace(/_/g, ' ')} - ${s.value ? 'On' : 'Off'}`,
-		click: async () => {
-			await toggleDeviceState(device.id, s.code, s.value);
-			updateMenu();
-		},
-		enabled: typeof s.value === 'boolean',
-	}));
+	let statusItems = status.map((s) => {
+		if (typeof s.value === 'boolean') {
+			return {
+				label: `${(s.code.charAt(0).toUpperCase() + s.code.slice(1)).replace(/_/g, ' ')} - ${s.value ? 'On' : 'Off'}`,
+				click: async () => {
+					await toggleDeviceState(device.id, s.code, s.value);
+					updateMenu();
+				},
+				enabled: true,
+			};
+		}
 
-	statusItems = statusItems.filter((item) => item.enabled);
+		if (s.code === 'fan_speed_percent') {
+			return {
+				label: 'Fan Speed',
+				submenu: Array.from({ length: 5 }, (_, i) => ({
+					label: `${i + 1}`,
+					click: async () => {
+						await toggleDeviceState(device.id, s.code, i + 1);
+						updateMenu();
+					},
+				})),
+			};
+		} else if (s.code === 'temp_set') {
+			return {
+				label: 'Temperature',
+				submenu: Array.from({ length: 15 }, (_, i) => ({
+					label: `${i + 16}`,
+					click: async () => {
+						await toggleDeviceState(device.id, s.code, i + 16);
+						updateMenu();
+					},
+				})),
+			};
+		} else if (s.code === 'windspeed') {
+			return {
+				label: 'AC Fan Speed',
+				submenu: Array.from({ length: 4 }, (_, i) => ({
+					label: `${i + 1}`,
+					click: async () => {
+						await toggleDeviceState(device.id, s.code, i + 1);
+						updateMenu();
+					},
+				})),
+			};
+		} else if (s.code === 'mode') {
+			return {
+				label: 'AC Mode',
+				submenu: ['auto', 'cold', 'dry', 'wind'].map((mode) => ({
+					label: mode.charAt(0).toUpperCase() + mode.slice(1),
+					click: async () => {
+						if (mode === 'dry') mode = 'wet';
+						await toggleDeviceState(device.id, s.code, mode);
+						updateMenu();
+					},
+				})),
+			};
+		}
+
+		return null; // Skip unsupported types
+	});
+
+	statusItems = statusItems.filter((item) => item !== null);
 
 	return {
 		label: device.name,
 		submenu: statusItems,
 	};
 }
+
 
 async function updateMenu(auto = false) {
 	if (!tuya) {
