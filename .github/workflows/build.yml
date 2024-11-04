@@ -81,9 +81,9 @@ jobs:
           files: |
             dist/*.msi
           body: |
-            Release v${{ steps.package_version.outputs.version }}
+            # v${{ steps.package_version.outputs.version }}
                         
-            Installation:
+            ### Installation:
             - Download the .msi file
             - Run the installer
             - Follow the installation wizard
