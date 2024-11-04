@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const appVersion = app.getVersion();
-const downloadUrl = 'https://github.com/Adib23704/Tuya-Taskbar-App/releases/latest';
+const downloadUrl = 'https://github.com/Adib23704/Tuya-Smart-Taskbar/releases/latest';
 
 let tray = null;
 let currentContextMenu = null;
@@ -255,7 +255,7 @@ function openConfigWindow() {
 			nodeIntegration: true,
 			contextIsolation: false,
 		},
-		title: 'Smart Taskbar Config',
+		title: 'Tuya Smart Taskbar Config',
 		icon: defaultIconPath,
 		autoHideMenuBar: true,
 		center: true,
@@ -288,7 +288,7 @@ function openAboutWindow() {
 			nodeIntegration: true,
 			contextIsolation: false,
 		},
-		title: 'About Tuya Taskbar App',
+		title: 'About Tuya Smart Taskbar',
 		icon: defaultIconPath,
 		autoHideMenuBar: true,
 		center: true,
@@ -328,7 +328,7 @@ app.whenReady().then(() => {
 	ipcMain.on('check-for-update', async (event) => {
 		try {
 			const response = await fetch(
-				'https://raw.githubusercontent.com/Adib23704/Tuya-Taskbar-App/refs/heads/master/package.json'
+				'https://raw.githubusercontent.com/Adib23704/Tuya-Smart-Taskbar/refs/heads/master/package.json'
 			);
 			const data = await response.json();
 			const latestVersion = data.version;
