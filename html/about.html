@@ -92,7 +92,8 @@
 		</div>
 		<div class="section">
 			<label>Developer:</label>
-			<div class="content">Zahin A. Adib (Adib23704) - <a href="https://adib.lol">www.adib.lol</a></div>
+			<div class="content">Zahin A. Adib (Adib23704) - <a href="#"
+					onclick="openExternalLink('https://adib.lol')">www.adib.lol</a></div>
 		</div>
 		<div class="section">
 			<label>Description:</label>
@@ -112,6 +113,10 @@
 
 		function checkForUpdate() {
 			ipcRenderer.send('check-for-update');
+		}
+
+		function openExternalLink(url) {
+			shell.openExternal(url);
 		}
 
 		ipcRenderer.on('update-available', (event, available, version, url) => {
