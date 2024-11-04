@@ -1,6 +1,6 @@
 {
   "name": "tuya-smart-taskbar",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Windows Taskbar App for controlling Tuya Smart Switches",
   "main": "main.js",
@@ -26,7 +26,8 @@
     "nodemon": "^3.1.7"
   },
   "dependencies": {
-    "@tuya/tuya-connector-nodejs": "^2.1.2"
+    "@tuya/tuya-connector-nodejs": "^2.1.2",
+    "node-fetch": "^3.3.2"
   },
   "nodemonConfig": {
     "events": {

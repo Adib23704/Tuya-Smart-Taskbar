@@ -3,12 +3,17 @@ import { TuyaContext } from '@tuya/tuya-connector-nodejs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const appVersion = app.getVersion();
+const downloadUrl = 'https://github.com/Adib23704/Tuya-Taskbar-App/releases/latest';
 
 let tray = null;
 let currentContextMenu = null;
 let configWindow = null;
+let aboutWindow = null;
 let devices = [];
 let config;
 let tuya;
@@ -224,6 +229,10 @@ async function updateMenu(auto = false) {
 				label: 'Open Configuration',
 				click: openConfigWindow,
 			},
+			{
+				label: 'About',
+				click: openAboutWindow,
+			},
 			{ label: 'Quit', role: 'quit' },
 		];
 	}
@@ -240,16 +249,18 @@ function openConfigWindow() {
 
 	configWindow = new BrowserWindow({
 		width: 400,
-		height: 500,
+		height: 580,
 		resizable: false,
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
 		},
-		frame: false,
 		title: 'Smart Taskbar Config',
 		icon: defaultIconPath,
 		autoHideMenuBar: true,
+		center: true,
+		fullscreenable: false,
+		movable: true
 	});
 
 	configWindow.loadFile('html/config.html');
@@ -260,6 +271,39 @@ function openConfigWindow() {
 
 	configWindow.webContents.on('did-finish-load', () => {
 		configWindow.webContents.send('config-data', config);
+	});
+}
+
+function openAboutWindow() {
+	if (aboutWindow) {
+		aboutWindow.focus();
+		return;
+	}
+
+	aboutWindow = new BrowserWindow({
+		width: 400,
+		height: 500,
+		resizable: false,
+		webPreferences: {
+			nodeIntegration: true,
+			contextIsolation: false,
+		},
+		title: 'About Tuya Taskbar App',
+		icon: defaultIconPath,
+		autoHideMenuBar: true,
+		center: true,
+		fullscreenable: false,
+		movable: true
+	});
+
+	aboutWindow.loadFile('html/about.html');
+
+	aboutWindow.on('closed', () => {
+		aboutWindow = null;
+	});
+
+	aboutWindow.webContents.on('did-finish-load', () => {
+		aboutWindow.webContents.send('about-data', appVersion);
 	});
 }
 
@@ -279,6 +323,25 @@ app.whenReady().then(() => {
 		updateStartupSettings(config.runOnStartup);
 		tuya = createTuyaContext();
 		updateMenu();
+	});
+
+	ipcMain.on('check-for-update', async (event) => {
+		try {
+			const response = await fetch(
+				'https://raw.githubusercontent.com/Adib23704/Tuya-Taskbar-App/refs/heads/master/package.json'
+			);
+			const data = await response.json();
+			const latestVersion = data.version;
+			console.log('Latest version:', latestVersion);
+			if (latestVersion !== appVersion) {
+				event.sender.send('update-available', true, latestVersion, downloadUrl);
+			} else {
+				event.sender.send('update-available', false);
+			}
+		} catch (error) {
+			console.error('Error checking for update:', error);
+			event.sender.send('update-check-failed');
+		}
 	});
 
 	app.on('window-all-closed', (event) => {
