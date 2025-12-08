@@ -54,9 +54,9 @@ impl ConfigManager {
     }
 
     fn get_config_path() -> PathBuf {
-        if let Some(proj_dirs) = ProjectDirs::from("me", "adibdev", "tuya-smart-taskbar") {
-            let config_dir = proj_dirs.config_dir();
-            if let Err(e) = fs::create_dir_all(config_dir) {
+        if let Some(local_data) = directories::BaseDirs::new() {
+            let config_dir = local_data.data_local_dir().join("Tuya Smart Taskbar");
+            if let Err(e) = fs::create_dir_all(&config_dir) {
                 tracing::warn!("Failed to create config directory: {}", e);
             }
             config_dir.join("config.json")
