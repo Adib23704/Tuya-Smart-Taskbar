@@ -24,15 +24,17 @@ use tuya::{create_shared_client, initialize_client, SharedTuyaClient};
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
+// Embed icons at compile time
+const ICON_BYTES: &[u8] = include_bytes!("../icons/icon.ico");
+const LOADING_ICON_BYTES: &[u8] = include_bytes!("../icons/loading.ico");
+
 async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool) {
     let config_manager = app.state::<ConfigManager>();
     let client = app.state::<SharedTuyaClient>();
 
     if !is_auto_refresh {
         if let Some(tray) = app.tray_by_id("main") {
-            if let Ok(icon) = Image::from_path("src-tauri/icons/loading.ico")
-                .or_else(|_| Image::from_path("icons/loading.ico"))
-            {
+            if let Ok(icon) = Image::from_bytes(LOADING_ICON_BYTES) {
                 let _ = tray.set_icon(Some(icon));
             }
         }
@@ -52,9 +54,7 @@ async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool) {
 
     if !is_auto_refresh {
         if let Some(tray) = app.tray_by_id("main") {
-            if let Ok(icon) = Image::from_path("src-tauri/icons/icon.ico")
-                .or_else(|_| Image::from_path("icons/icon.ico"))
-            {
+            if let Ok(icon) = Image::from_bytes(ICON_BYTES) {
                 let _ = tray.set_icon(Some(icon));
             }
         }
@@ -212,8 +212,7 @@ fn main() {
             commands::app::open_external,
         ])
         .setup(|app| {
-            let icon = Image::from_path("src-tauri/icons/icon.ico")
-                .or_else(|_| Image::from_path("icons/icon.ico"))
+            let icon = Image::from_bytes(ICON_BYTES)
                 .expect("Failed to load tray icon");
 
             let initial_menu = tray::build_unconfigured_menu(app.handle())

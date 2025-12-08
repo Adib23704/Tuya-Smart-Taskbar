@@ -6,11 +6,57 @@
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
 			rel="stylesheet"
 		/>
 		<title>About</title>
 		<style>
+			:root {
+				--bg-primary: #f8fafc;
+				--bg-secondary: #ffffff;
+				--bg-tertiary: #f1f5f9;
+				--text-primary: #0f172a;
+				--text-secondary: #475569;
+				--text-muted: #94a3b8;
+				--border-color: #e2e8f0;
+				--border-focus: #3b82f6;
+				--accent: #3b82f6;
+				--accent-hover: #2563eb;
+				--accent-light: rgba(59, 130, 246, 0.1);
+				--success: #10b981;
+				--success-hover: #059669;
+				--error: #ef4444;
+				--error-light: rgba(239, 68, 68, 0.1);
+				--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+				--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+				--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+				--radius-sm: 6px;
+				--radius-md: 10px;
+				--radius-lg: 16px;
+				--transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+			}
+
+			[data-theme="dark"] {
+				--bg-primary: #0f172a;
+				--bg-secondary: #1e293b;
+				--bg-tertiary: #334155;
+				--text-primary: #f1f5f9;
+				--text-secondary: #cbd5e1;
+				--text-muted: #64748b;
+				--border-color: #334155;
+				--border-focus: #60a5fa;
+				--accent: #60a5fa;
+				--accent-hover: #3b82f6;
+				--accent-light: rgba(96, 165, 250, 0.15);
+				--success: #34d399;
+				--success-hover: #10b981;
+				--error: #f87171;
+				--error-light: rgba(248, 113, 113, 0.15);
+				--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+				--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+				--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+			}
+
 			* {
 				box-sizing: border-box;
 				margin: 0;
@@ -18,155 +64,451 @@
 			}
 
 			body {
-				font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
-				background-color: #f4f4f4;
-				display: flex;
-				justify-content: center;
-				align-items: center;
+				font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+				background-color: var(--bg-primary);
 				min-height: 100vh;
-				color: #333;
+				color: var(--text-primary);
+				transition: background-color var(--transition), color var(--transition);
+			}
+
+			/* Custom Scrollbar */
+			::-webkit-scrollbar {
+				width: 8px;
+			}
+			::-webkit-scrollbar-track {
+				background: var(--bg-tertiary);
+			}
+			::-webkit-scrollbar-thumb {
+				background: var(--text-muted);
+				border-radius: 4px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: var(--text-secondary);
 			}
 
 			.container {
 				width: 100%;
-				max-width: 400px;
+				max-width: 420px;
+				margin: 0 auto;
 				padding: 24px;
 			}
 
-			h2 {
+			/* Header with Logo */
+			.header {
 				text-align: center;
+				margin-bottom: 28px;
+			}
+
+			.logo {
+				width: 72px;
+				height: 72px;
+				margin: 0 auto 16px;
+				background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+				border-radius: var(--radius-md);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				box-shadow: var(--shadow-lg);
+				animation: logoFloat 3s ease-in-out infinite;
+			}
+
+			@keyframes logoFloat {
+				0%, 100% { transform: translateY(0); }
+				50% { transform: translateY(-4px); }
+			}
+
+			.logo svg {
+				width: 40px;
+				height: 40px;
+				fill: white;
+			}
+
+			.header h1 {
 				font-size: 1.5rem;
-				font-weight: 500;
-				margin-bottom: 24px;
-				color: #1a1a1a;
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 8px;
 			}
 
-			.section {
-				margin-bottom: 20px;
+			.version-container {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
 			}
 
-			.section label {
-				display: block;
+			.version-badge {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 4px 12px;
+				background: var(--accent-light);
+				color: var(--accent);
+				border-radius: 20px;
+				font-weight: 600;
 				font-size: 0.875rem;
-				font-weight: 400;
-				color: #666;
-				margin-bottom: 4px;
 			}
 
-			.section .content {
+			.tech-badge {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				padding: 4px 10px;
+				background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+				color: #78350f;
+				border-radius: 20px;
+				font-weight: 600;
+				font-size: 0.75rem;
+			}
+
+			.tech-badge svg {
+				width: 12px;
+				height: 12px;
+			}
+
+			/* Card Container */
+			.card {
+				background: var(--bg-secondary);
+				border-radius: var(--radius-lg);
+				padding: 24px;
+				box-shadow: var(--shadow-md);
+				border: 1px solid var(--border-color);
+				transition: box-shadow var(--transition), border-color var(--transition), background-color var(--transition);
+			}
+
+			.card:hover {
+				box-shadow: var(--shadow-lg);
+			}
+
+			/* Info Sections */
+			.info-section {
+				padding: 16px 0;
+				border-bottom: 1px solid var(--border-color);
+			}
+
+			.info-section:last-of-type {
+				border-bottom: none;
+				padding-bottom: 8px;
+			}
+
+			.info-section:first-of-type {
+				padding-top: 0;
+			}
+
+			.info-label {
+				font-size: 0.75rem;
+				font-weight: 600;
+				color: var(--text-muted);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				margin-bottom: 8px;
+			}
+
+			.info-content {
 				font-size: 0.9375rem;
-				color: #333;
-				line-height: 1.5;
+				color: var(--text-primary);
+				line-height: 1.6;
 			}
 
-			.section .content a {
-				color: #1976d2;
+			.info-content a {
+				color: var(--accent);
 				text-decoration: none;
-				transition: color 0.2s ease;
+				font-weight: 500;
+				transition: color var(--transition);
 				cursor: pointer;
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
 			}
 
-			.section .content a:hover {
-				color: #1565c0;
-				text-decoration: underline;
+			.info-content a:hover {
+				color: var(--accent-hover);
 			}
 
+			.info-content a svg {
+				width: 14px;
+				height: 14px;
+				opacity: 0;
+				transform: translateX(-4px);
+				transition: all var(--transition);
+			}
+
+			.info-content a:hover svg {
+				opacity: 1;
+				transform: translateX(0);
+			}
+
+			/* Developer Section */
+			.developer-info {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+
+			.developer-avatar {
+				width: 44px;
+				height: 44px;
+				background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-weight: 600;
+				font-size: 1.125rem;
+				color: white;
+				flex-shrink: 0;
+			}
+
+			.developer-details {
+				flex: 1;
+			}
+
+			.developer-name {
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 2px;
+			}
+
+			.developer-handle {
+				font-size: 0.875rem;
+				color: var(--text-muted);
+			}
+
+			/* Links Section */
+			.links-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+			}
+
+			.link-item {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				padding: 12px 14px;
+				background: var(--bg-tertiary);
+				border-radius: var(--radius-sm);
+				cursor: pointer;
+				transition: all var(--transition);
+				border: 1px solid transparent;
+			}
+
+			.link-item:hover {
+				background: var(--accent-light);
+				border-color: var(--accent);
+			}
+
+			.link-icon {
+				width: 32px;
+				height: 32px;
+				background: var(--bg-secondary);
+				border-radius: var(--radius-sm);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: all var(--transition);
+			}
+
+			.link-item:hover .link-icon {
+				background: var(--accent);
+			}
+
+			.link-icon svg {
+				width: 18px;
+				height: 18px;
+				color: var(--text-secondary);
+				transition: color var(--transition);
+			}
+
+			.link-item:hover .link-icon svg {
+				color: white;
+			}
+
+			.link-text {
+				font-size: 0.875rem;
+				font-weight: 500;
+				color: var(--text-primary);
+			}
+
+			/* Button */
 			.button-group {
-				margin-top: 28px;
+				margin-top: 24px;
 			}
 
 			button {
 				width: 100%;
-				padding: 12px 16px;
-				font-size: 1rem;
+				padding: 14px 18px;
+				font-size: 0.9375rem;
 				font-family: inherit;
 				font-weight: 600;
 				border: none;
-				border-radius: 6px;
+				border-radius: var(--radius-sm);
 				cursor: pointer;
-				transition: background-color 0.2s ease, transform 0.1s ease;
+				transition: all var(--transition);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 10px;
 			}
 
 			button:active:not(:disabled) {
 				transform: scale(0.98);
 			}
 
+			button svg {
+				width: 20px;
+				height: 20px;
+			}
+
 			.update-btn {
-				background-color: #eb312a;
+				background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
 				color: white;
+				box-shadow: var(--shadow-md);
 			}
 
 			.update-btn:hover:not(:disabled) {
-				background-color: #d52c26;
+				box-shadow: var(--shadow-lg);
+				transform: translateY(-1px);
 			}
 
-			.update-btn:disabled {
+			button:disabled {
+				opacity: 0.7;
 				cursor: not-allowed;
-				opacity: 0.9;
+				transform: none !important;
 			}
 
-			.version-badge {
-				display: inline-block;
-				padding: 2px 8px;
-				background-color: #e3f2fd;
-				color: #1976d2;
-				border-radius: 4px;
-				font-weight: 500;
-				font-size: 0.875rem;
+			button.success {
+				background: var(--success) !important;
 			}
 
-			.tauri-badge {
-				display: inline-block;
-				padding: 2px 8px;
-				background-color: #fef3c7;
-				color: #d97706;
-				border-radius: 4px;
-				font-weight: 500;
+			button.error {
+				background: var(--error) !important;
+			}
+
+			button.has-update {
+				background: linear-gradient(135deg, var(--success) 0%, #059669 100%) !important;
+				animation: pulse 2s infinite;
+			}
+
+			@keyframes pulse {
+				0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+				50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+			}
+
+			/* Loading Spinner */
+			.spinner {
+				width: 20px;
+				height: 20px;
+				border: 2px solid transparent;
+				border-top-color: currentColor;
+				border-radius: 50%;
+				animation: spin 0.8s linear infinite;
+			}
+
+			@keyframes spin {
+				to { transform: rotate(360deg); }
+			}
+
+			/* Footer */
+			.footer {
+				margin-top: 20px;
+				text-align: center;
 				font-size: 0.75rem;
-				margin-left: 8px;
+				color: var(--text-muted);
+			}
+
+			.footer a {
+				color: var(--text-muted);
+				text-decoration: none;
+				transition: color var(--transition);
+			}
+
+			.footer a:hover {
+				color: var(--accent);
 			}
 		</style>
 	</head>
 	<body>
 		<div class="container">
-			<h2>About</h2>
-
-			<div class="section">
-				<label>App Version</label>
-				<div class="content">
-					<span class="version-badge" id="appVersion">0.0.0</span>
-					<span class="tauri-badge">Tauri</span>
+			<div class="header">
+				<div class="logo">
+					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+						<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+					</svg>
+				</div>
+				<h1>Tuya Smart Taskbar</h1>
+				<div class="version-container">
+					<span class="version-badge">
+						<span>v</span><span id="appVersion">0.0.0</span>
+					</span>
+					<span class="tech-badge">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+						</svg>
+						Tauri
+					</span>
 				</div>
 			</div>
 
-			<div class="section">
-				<label>Developer</label>
-				<div class="content">
-					Zahin A. Adib (Adib23704) -
-					<a id="devLink">www.adib.lol</a>
+			<div class="card">
+				<div class="info-section">
+					<div class="info-label">Developer</div>
+					<div class="developer-info">
+						<div class="developer-avatar">ZA</div>
+						<div class="developer-details">
+							<div class="developer-name">Zahin A. Adib</div>
+							<div class="developer-handle">@Adib23704</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="info-section">
+					<div class="info-label">Description</div>
+					<div class="info-content">
+						Control your Tuya smart home devices directly from the Windows taskbar.
+						Fast, lightweight, and always accessible.
+					</div>
+				</div>
+
+				<div class="info-section">
+					<div class="info-label">Links</div>
+					<div class="links-grid">
+						<div class="link-item" id="githubLink">
+							<div class="link-icon">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+								</svg>
+							</div>
+							<span class="link-text">GitHub</span>
+						</div>
+						<div class="link-item" id="websiteLink">
+							<div class="link-icon">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<circle cx="12" cy="12" r="10"></circle>
+									<line x1="2" y1="12" x2="22" y2="12"></line>
+									<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+								</svg>
+							</div>
+							<span class="link-text">Website</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="button-group">
+					<button id="check-update-btn" type="button" class="update-btn">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+							<path d="M3 3v5h5"></path>
+							<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+							<path d="M16 16h5v5"></path>
+						</svg>
+						<span>Check for Updates</span>
+					</button>
 				</div>
 			</div>
 
-			<div class="section">
-				<label>Description</label>
-				<div class="content">
-					This app provides enhanced smart device control with integration to
-					Tuya platforms, allowing users to manage their devices directly from
-					the Windows taskbar with ease and efficiency.
-				</div>
-			</div>
-
-			<div class="section">
-				<label>Source Code</label>
-				<div class="content">
-					<a id="githubLink">GitHub Repository</a>
-				</div>
-			</div>
-
-			<div class="button-group">
-				<button id="check-update-btn" type="button" class="update-btn">
-					Check for Update
-				</button>
+			<div class="footer">
+				Made with care for the smart home community
 			</div>
 		</div>
 		<script>
@@ -174,8 +516,19 @@
 
 			const appVersionEl = document.getElementById('appVersion');
 			const checkUpdateBtn = document.getElementById('check-update-btn');
-			const devLink = document.getElementById('devLink');
 			const githubLink = document.getElementById('githubLink');
+			const websiteLink = document.getElementById('websiteLink');
+
+			// Detect system theme
+			function detectTheme() {
+				if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+					document.documentElement.setAttribute('data-theme', 'dark');
+				} else {
+					document.documentElement.removeAttribute('data-theme');
+				}
+			}
+
+			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectTheme);
 
 			async function openExternalLink(url) {
 				try {
@@ -185,43 +538,67 @@
 				}
 			}
 
+			function setButtonState(state, text, hasUpdate = false) {
+				const span = checkUpdateBtn.querySelector('span');
+				const svg = checkUpdateBtn.querySelector('svg:not(.spinner)');
+
+				checkUpdateBtn.classList.remove('success', 'error', 'has-update');
+
+				if (state === 'loading') {
+					checkUpdateBtn.disabled = true;
+					if (svg) svg.style.display = 'none';
+					if (!checkUpdateBtn.querySelector('.spinner')) {
+						const spinner = document.createElement('div');
+						spinner.className = 'spinner';
+						checkUpdateBtn.insertBefore(spinner, span);
+					}
+					span.textContent = text;
+				} else {
+					checkUpdateBtn.disabled = false;
+					if (svg) svg.style.display = 'block';
+					const spinner = checkUpdateBtn.querySelector('.spinner');
+					if (spinner) spinner.remove();
+					span.textContent = text;
+
+					if (state === 'success') checkUpdateBtn.classList.add('success');
+					if (state === 'error') checkUpdateBtn.classList.add('error');
+					if (hasUpdate) checkUpdateBtn.classList.add('has-update');
+				}
+			}
+
 			async function checkForUpdate() {
-				checkUpdateBtn.disabled = true;
-				checkUpdateBtn.textContent = 'Checking...';
+				setButtonState('loading', 'Checking...');
 
 				try {
 					const info = await invoke('check_for_update');
 
 					if (info.available) {
-						checkUpdateBtn.textContent = `Update Available (v${info.latestVersion})`;
-						checkUpdateBtn.style.backgroundColor = '#4caf50';
+						setButtonState('normal', `Update to v${info.latestVersion}`, true);
 
-						if (confirm(`A new version (v${info.latestVersion}) is available!\n\nWould you like to download it?`)) {
+						checkUpdateBtn.onclick = async () => {
 							await openExternalLink(info.downloadUrl);
-						}
+						};
 					} else {
-						checkUpdateBtn.textContent = 'Up to Date!';
-						checkUpdateBtn.style.backgroundColor = '#4caf50';
+						setButtonState('success', 'Up to Date!');
 
 						setTimeout(() => {
-							checkUpdateBtn.textContent = 'Check for Update';
-							checkUpdateBtn.style.backgroundColor = '#eb312a';
-							checkUpdateBtn.disabled = false;
+							setButtonState('normal', 'Check for Updates');
+							checkUpdateBtn.onclick = checkForUpdate;
 						}, 3000);
 					}
 				} catch (error) {
 					console.error('Failed to check for update:', error);
-					checkUpdateBtn.textContent = 'Check Failed';
+					setButtonState('error', 'Check Failed');
 
 					setTimeout(() => {
-						checkUpdateBtn.textContent = 'Check for Update';
-						checkUpdateBtn.disabled = false;
+						setButtonState('normal', 'Check for Updates');
 					}, 3000);
 				}
 			}
 
 			async function init() {
-				// Load version
+				detectTheme();
+
 				try {
 					const version = await invoke('get_version');
 					appVersionEl.textContent = version;
@@ -229,10 +606,9 @@
 					console.error('Failed to get version:', error);
 				}
 
-				// Set up event listeners
 				checkUpdateBtn.addEventListener('click', checkForUpdate);
-				devLink.addEventListener('click', () => openExternalLink('https://www.adibdev.me'));
 				githubLink.addEventListener('click', () => openExternalLink('https://github.com/Adib23704/Tuya-Smart-Taskbar'));
+				websiteLink.addEventListener('click', () => openExternalLink('https://www.adibdev.me'));
 			}
 
 			if (document.readyState === 'loading') {
