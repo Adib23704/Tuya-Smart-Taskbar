@@ -3,44 +3,20 @@
 	"version": "2.0.0",
 	"private": true,
 	"description": "Windows Taskbar App for controlling Tuya Smart Devices",
-	"main": "dist/main/index.js",
 	"type": "module",
 	"scripts": {
-		"start": "pnpm build && electron .",
-		"dev": "pnpm build && concurrently -k \"pnpm watch:main\" \"pnpm watch:preload\" \"pnpm watch:renderer\" \"pnpm dev:electron\"",
-		"dev:electron": "nodemon --watch dist --exec electron .",
-		"watch:main": "tsc -p tsconfig.main.json --watch --preserveWatchOutput",
-		"watch:preload": "tsc -p tsconfig.preload.json --watch --preserveWatchOutput",
-		"watch:renderer": "tsc -p tsconfig.renderer.json --watch --preserveWatchOutput",
-		"build:main": "tsc -p tsconfig.main.json",
-		"build:preload": "tsc -p tsconfig.preload.json",
-		"build:renderer": "tsc -p tsconfig.renderer.json",
-		"build": "pnpm build:main && pnpm build:preload && pnpm build:renderer",
-		"build:app": "pnpm build && node scripts/build.js",
-		"lint": "biome check .",
-		"lint:fix": "biome check --write .",
-		"format": "biome format --write .",
-		"check": "biome check . && tsc --noEmit",
-		"clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
-		"typecheck": "tsc --noEmit"
+		"tauri": "tauri",
+		"dev": "tauri dev",
+		"build": "tauri build"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/Adib23704/Tuya-Smart-Taskbar.git"
 	},
-	"author": "Zahin A. Adib <adib23704@gmail.com> (https://adib.lol/)",
+	"author": "Zahin A. Adib <adib23704@gmail.com> (https://adibdev.me/)",
 	"license": "MIT",
 	"devDependencies": {
-		"@biomejs/biome": "^2.3.8",
-		"@types/node": "^24.10.1",
-		"concurrently": "^9.2.1",
-		"electron": "^39.2.6",
-		"electron-builder": "^26.0.12",
-		"nodemon": "^3.1.11",
-		"typescript": "^5.9.3"
-	},
-	"dependencies": {
-		"@tuya/tuya-connector-nodejs": "^2.1.2"
+		"@tauri-apps/cli": "^2"
 	},
 	"packageManager": "pnpm@10.24.0"
 }

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<title>About</title>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
+				background-color: #f4f4f4;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				min-height: 100vh;
+				color: #333;
+			}
+
+			.container {
+				width: 100%;
+				max-width: 400px;
+				padding: 24px;
+			}
+
+			h2 {
+				text-align: center;
+				font-size: 1.5rem;
+				font-weight: 500;
+				margin-bottom: 24px;
+				color: #1a1a1a;
+			}
+
+			.section {
+				margin-bottom: 20px;
+			}
+
+			.section label {
+				display: block;
+				font-size: 0.875rem;
+				font-weight: 400;
+				color: #666;
+				margin-bottom: 4px;
+			}
+
+			.section .content {
+				font-size: 0.9375rem;
+				color: #333;
+				line-height: 1.5;
+			}
+
+			.section .content a {
+				color: #1976d2;
+				text-decoration: none;
+				transition: color 0.2s ease;
+				cursor: pointer;
+			}
+
+			.section .content a:hover {
+				color: #1565c0;
+				text-decoration: underline;
+			}
+
+			.button-group {
+				margin-top: 28px;
+			}
+
+			button {
+				width: 100%;
+				padding: 12px 16px;
+				font-size: 1rem;
+				font-family: inherit;
+				font-weight: 600;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: background-color 0.2s ease, transform 0.1s ease;
+			}
+
+			button:active:not(:disabled) {
+				transform: scale(0.98);
+			}
+
+			.update-btn {
+				background-color: #eb312a;
+				color: white;
+			}
+
+			.update-btn:hover:not(:disabled) {
+				background-color: #d52c26;
+			}
+
+			.update-btn:disabled {
+				cursor: not-allowed;
+				opacity: 0.9;
+			}
+
+			.version-badge {
+				display: inline-block;
+				padding: 2px 8px;
+				background-color: #e3f2fd;
+				color: #1976d2;
+				border-radius: 4px;
+				font-weight: 500;
+				font-size: 0.875rem;
+			}
+
+			.tauri-badge {
+				display: inline-block;
+				padding: 2px 8px;
+				background-color: #fef3c7;
+				color: #d97706;
+				border-radius: 4px;
+				font-weight: 500;
+				font-size: 0.75rem;
+				margin-left: 8px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h2>About</h2>
+
+			<div class="section">
+				<label>App Version</label>
+				<div class="content">
+					<span class="version-badge" id="appVersion">0.0.0</span>
+					<span class="tauri-badge">Tauri</span>
+				</div>
+			</div>
+
+			<div class="section">
+				<label>Developer</label>
+				<div class="content">
+					Zahin A. Adib (Adib23704) -
+					<a id="devLink">www.adib.lol</a>
+				</div>
+			</div>
+
+			<div class="section">
+				<label>Description</label>
+				<div class="content">
+					This app provides enhanced smart device control with integration to
+					Tuya platforms, allowing users to manage their devices directly from
+					the Windows taskbar with ease and efficiency.
+				</div>
+			</div>
+
+			<div class="section">
+				<label>Source Code</label>
+				<div class="content">
+					<a id="githubLink">GitHub Repository</a>
+				</div>
+			</div>
+
+			<div class="button-group">
+				<button id="check-update-btn" type="button" class="update-btn">
+					Check for Update
+				</button>
+			</div>
+		</div>
+		<script>
+			const { invoke } = window.__TAURI__.core;
+
+			const appVersionEl = document.getElementById('appVersion');
+			const checkUpdateBtn = document.getElementById('check-update-btn');
+			const devLink = document.getElementById('devLink');
+			const githubLink = document.getElementById('githubLink');
+
+			async function openExternalLink(url) {
+				try {
+					await invoke('open_external', { url });
+				} catch (error) {
+					console.error('Failed to open link:', error);
+				}
+			}
+
+			async function checkForUpdate() {
+				checkUpdateBtn.disabled = true;
+				checkUpdateBtn.textContent = 'Checking...';
+
+				try {
+					const info = await invoke('check_for_update');
+
+					if (info.available) {
+						checkUpdateBtn.textContent = `Update Available (v${info.latestVersion})`;
+						checkUpdateBtn.style.backgroundColor = '#4caf50';
+
+						if (confirm(`A new version (v${info.latestVersion}) is available!\n\nWould you like to download it?`)) {
+							await openExternalLink(info.downloadUrl);
+						}
+					} else {
+						checkUpdateBtn.textContent = 'Up to Date!';
+						checkUpdateBtn.style.backgroundColor = '#4caf50';
+
+						setTimeout(() => {
+							checkUpdateBtn.textContent = 'Check for Update';
+							checkUpdateBtn.style.backgroundColor = '#eb312a';
+							checkUpdateBtn.disabled = false;
+						}, 3000);
+					}
+				} catch (error) {
+					console.error('Failed to check for update:', error);
+					checkUpdateBtn.textContent = 'Check Failed';
+
+					setTimeout(() => {
+						checkUpdateBtn.textContent = 'Check for Update';
+						checkUpdateBtn.disabled = false;
+					}, 3000);
+				}
+			}
+
+			async function init() {
+				// Load version
+				try {
+					const version = await invoke('get_version');
+					appVersionEl.textContent = version;
+				} catch (error) {
+					console.error('Failed to get version:', error);
+				}
+
+				// Set up event listeners
+				checkUpdateBtn.addEventListener('click', checkForUpdate);
+				devLink.addEventListener('click', () => openExternalLink('https://www.adibdev.me'));
+				githubLink.addEventListener('click', () => openExternalLink('https://github.com/Adib23704/Tuya-Smart-Taskbar'));
+			}
+
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', init);
+			} else {
+				init();
+			}
+		</script>
+	</body>
+</html>

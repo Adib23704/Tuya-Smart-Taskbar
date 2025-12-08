@@ -1,7 +1,0 @@
-{
-	"watch": ["dist"],
-	"ext": "js",
-	"ignore": ["dist/renderer/**"],
-	"delay": 500,
-	"signal": "SIGTERM"
-}

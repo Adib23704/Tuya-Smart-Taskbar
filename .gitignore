@@ -2,9 +2,7 @@
 node_modules/
 
 # Build outputs
-dist/
-release/
-*.tsbuildinfo
+src-tauri/target/
 
 # Environment
 .env
@@ -28,17 +26,5 @@ npm-debug.log*
 Thumbs.db
 desktop.ini
 
-# Test coverage
-coverage/
-.nyc_output/
-
 # Cache
 .cache/
-.parcel-cache/
-.eslintcache
-
-# Electron
-out/
-
-# Error logs
-error.log
