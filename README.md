@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src-tauri/icons/icon.png" alt="Tuya Smart Taskbar" width="128" height="128">
+  <img src="src-tauri/icons/icon.ico" alt="Tuya Smart Taskbar" width="128" height="128">
 </p>
 
 <h1 align="center">Tuya Smart Taskbar</h1>
