@@ -120,7 +120,7 @@ fn open_config_window(app: &AppHandle) {
             tauri::WebviewUrl::App("pages/config.html".into()),
         )
         .title("Tuya Smart Taskbar - Configuration")
-        .inner_size(400.0, 580.0)
+        .inner_size(400.0, 660.0)
         .resizable(false)
         .center()
         .visible(true)
@@ -143,7 +143,7 @@ fn open_about_window(app: &AppHandle) {
             tauri::WebviewUrl::App("pages/about.html".into()),
         )
         .title("About Tuya Smart Taskbar")
-        .inner_size(400.0, 500.0)
+        .inner_size(400.0, 590.0)
         .resizable(false)
         .center()
         .visible(true)
