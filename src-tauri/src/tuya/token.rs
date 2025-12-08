@@ -161,13 +161,4 @@ impl TokenManager {
         let mut state = self.token_state.write().await;
         *state = None;
     }
-
-    pub async fn has_valid_token(&self) -> bool {
-        let state = self.token_state.read().await;
-        if let Some(ref token) = *state {
-            !token.is_expired()
-        } else {
-            false
-        }
-    }
 }

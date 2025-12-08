@@ -89,8 +89,6 @@ pub struct TuyaApiResponse<T> {
     pub result: Option<T>,
     pub code: Option<i32>,
     pub msg: Option<String>,
-    pub t: i64,
-    pub tid: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -98,7 +96,6 @@ pub struct TokenResponse {
     pub access_token: String,
     pub refresh_token: String,
     pub expire_time: i64,
-    pub uid: String,
 }
 
 #[derive(Debug, Clone)]
@@ -112,50 +109,6 @@ impl TokenState {
     pub fn is_expired(&self) -> bool {
         let now = chrono::Utc::now().timestamp();
         now >= (self.expires_at - 300)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TuyaRegion {
-    CentralEurope,
-    WesternEurope,
-    China,
-    WesternAmerica,
-    EasternAmerica,
-    India,
-    Singapore
-}
-
-impl TuyaRegion {
-    pub fn base_url(&self) -> &'static str {
-        match self {
-            TuyaRegion::CentralEurope => "https://openapi.tuyaeu.com",
-            TuyaRegion::WesternEurope => "https://openapi-weaz.tuyaeu.com",
-            TuyaRegion::China => "https://openapi.tuyacn.com",
-            TuyaRegion::WesternAmerica => "https://openapi.tuyaus.com",
-            TuyaRegion::EasternAmerica => "https://openapi-ueaz.tuyaus.com",
-            TuyaRegion::India => "https://openapi.tuyain.com",
-            TuyaRegion::Singapore => "https://openapi-sg.iotbing.com",
-        }
-    }
-
-    pub fn from_url(url: &str) -> Option<Self> {
-        match url {
-            "https://openapi.tuyaeu.com" => Some(TuyaRegion::CentralEurope),
-            "https://openapi-weaz.tuyaeu.com" => Some(TuyaRegion::WesternEurope),
-            "https://openapi.tuyacn.com" => Some(TuyaRegion::China),
-            "https://openapi.tuyaus.com" => Some(TuyaRegion::WesternAmerica),
-            "https://openapi-ueaz.tuyaus.com" => Some(TuyaRegion::EasternAmerica),
-            "https://openapi.tuyain.com" => Some(TuyaRegion::India),
-            "https://openapi-sg.iotbing.com" => Some(TuyaRegion::Singapore),
-            _ => None,
-        }
-    }
-}
-
-impl Default for TuyaRegion {
-    fn default() -> Self {
-        TuyaRegion::CentralEurope
     }
 }
 

@@ -3,7 +3,9 @@ use tokio::sync::RwLock;
 
 use super::auth::SignedHeaders;
 use super::token::TokenManager;
-use super::types::*;
+use super::types::{
+    TuyaApiResponse, TuyaCommand, TuyaCommandPayload, TuyaDevice, TuyaDeviceStatus, TuyaValue,
+};
 use crate::error::AppError;
 
 pub struct TuyaClient {
@@ -23,10 +25,6 @@ impl TuyaClient {
             client_id,
             secret,
         }
-    }
-
-    pub fn from_region(client_id: String, secret: String, region: TuyaRegion) -> Self {
-        Self::new(client_id, secret, region.base_url().to_string())
     }
 
     async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, AppError> {
@@ -192,9 +190,4 @@ pub async fn initialize_client(
     let client = TuyaClient::new(client_id, secret, base_url);
     let mut guard = shared.write().await;
     *guard = Some(client);
-}
-
-pub async fn clear_client(shared: &SharedTuyaClient) {
-    let mut guard = shared.write().await;
-    *guard = None;
 }

@@ -103,10 +103,6 @@ impl ConfigManager {
     pub fn is_configured(&self) -> bool {
         self.config.read().unwrap().is_configured()
     }
-
-    pub fn get_path(&self) -> &PathBuf {
-        &self.config_path
-    }
 }
 
 impl Default for ConfigManager {
