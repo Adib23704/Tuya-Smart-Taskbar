@@ -1,0 +1,68 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"ignoreUnknown": false,
+		"includes": ["**", "!**/node_modules", "!**/dist", "!**/*.js", "!**/*.d.ts"]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"indentWidth": 2,
+		"lineEnding": "lf",
+		"lineWidth": 100
+	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"complexity": {
+				"noBannedTypes": "error",
+				"noUselessTypeConstraint": "error",
+				"useArrowFunction": "error"
+			},
+			"correctness": {
+				"noUnusedImports": "error",
+				"noUnusedVariables": "error",
+				"useExhaustiveDependencies": "warn",
+				"useHookAtTopLevel": "error"
+			},
+			"style": {
+				"noNamespace": "error",
+				"useBlockStatements": "error",
+				"useConst": "error",
+				"useImportType": "error",
+				"useShorthandFunctionType": "error",
+				"noNonNullAssertion": "warn"
+			},
+			"suspicious": {
+				"noConfusingVoidType": "error",
+				"noEmptyBlockStatements": "error",
+				"noExplicitAny": "warn",
+				"useAwait": "error",
+				"noTemplateCurlyInString": "off"
+			},
+			"security": {
+				"noSecrets": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"semicolons": "always",
+			"trailingCommas": "all",
+			"arrowParentheses": "always"
+		}
+	},
+	"json": {
+		"formatter": {
+			"trailingCommas": "none"
+		}
+	}
+}

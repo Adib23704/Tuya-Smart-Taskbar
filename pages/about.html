@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'"
+		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<title>About</title>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
+				background-color: #f4f4f4;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				min-height: 100vh;
+				color: #333;
+			}
+
+			.container {
+				width: 100%;
+				max-width: 400px;
+				padding: 24px;
+			}
+
+			h2 {
+				text-align: center;
+				font-size: 1.5rem;
+				font-weight: 500;
+				margin-bottom: 24px;
+				color: #1a1a1a;
+			}
+
+			.section {
+				margin-bottom: 20px;
+			}
+
+			.section label {
+				display: block;
+				font-size: 0.875rem;
+				font-weight: 400;
+				color: #666;
+				margin-bottom: 4px;
+			}
+
+			.section .content {
+				font-size: 0.9375rem;
+				color: #333;
+				line-height: 1.5;
+			}
+
+			.section .content a {
+				color: #1976d2;
+				text-decoration: none;
+				transition: color 0.2s ease;
+			}
+
+			.section .content a:hover {
+				color: #1565c0;
+				text-decoration: underline;
+			}
+
+			.button-group {
+				margin-top: 28px;
+			}
+
+			button {
+				width: 100%;
+				padding: 12px 16px;
+				font-size: 1rem;
+				font-family: inherit;
+				font-weight: 600;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: background-color 0.2s ease, transform 0.1s ease;
+			}
+
+			button:active:not(:disabled) {
+				transform: scale(0.98);
+			}
+
+			.update-btn {
+				background-color: #eb312a;
+				color: white;
+			}
+
+			.update-btn:hover:not(:disabled) {
+				background-color: #d52c26;
+			}
+
+			.update-btn:disabled {
+				cursor: not-allowed;
+				opacity: 0.9;
+			}
+
+			.version-badge {
+				display: inline-block;
+				padding: 2px 8px;
+				background-color: #e3f2fd;
+				color: #1976d2;
+				border-radius: 4px;
+				font-weight: 500;
+				font-size: 0.875rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h2>About</h2>
+
+			<div class="section">
+				<label>App Version</label>
+				<div class="content">
+					<span class="version-badge" id="appVersion">0.0.0</span>
+				</div>
+			</div>
+
+			<div class="section">
+				<label>Developer</label>
+				<div class="content">
+					Zahin A. Adib (Adib23704) -
+					<a href="#" onclick="openExternalLink('https://www.adibdev.me'); return false;">www.adib.lol</a>
+				</div>
+			</div>
+
+			<div class="section">
+				<label>Description</label>
+				<div class="content">
+					This app provides enhanced smart device control with integration to
+					Tuya platforms, allowing users to manage their devices directly from
+					the Windows taskbar with ease and efficiency.
+				</div>
+			</div>
+
+			<div class="section">
+				<label>Source Code</label>
+				<div class="content">
+					<a href="#" onclick="openExternalLink('https://github.com/Adib23704/Tuya-Smart-Taskbar'); return false;">
+						GitHub Repository
+					</a>
+				</div>
+			</div>
+
+			<div class="button-group">
+				<button id="check-update-btn" type="button" class="update-btn">
+					Check for Update
+				</button>
+			</div>
+		</div>
+		<script src="../dist/renderer/about.js"></script>
+	</body>
+</html>
