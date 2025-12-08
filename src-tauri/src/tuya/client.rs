@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::RwLock;
 
 use super::auth::SignedHeaders;
@@ -7,6 +8,11 @@ use super::types::{
     TuyaApiResponse, TuyaCommand, TuyaCommandPayload, TuyaDevice, TuyaDeviceStatus, TuyaValue,
 };
 use crate::error::AppError;
+
+const REQUEST_TIMEOUT_SECS: u64 = 30;
+const CONNECT_TIMEOUT_SECS: u64 = 10;
+const MAX_RETRIES: u32 = 3;
+const INITIAL_RETRY_DELAY_MS: u64 = 500;
 
 pub struct TuyaClient {
     token_manager: TokenManager,
@@ -18,9 +24,15 @@ pub struct TuyaClient {
 
 impl TuyaClient {
     pub fn new(client_id: String, secret: String, base_url: String) -> Self {
+        let http_client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+            .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
+            .build()
+            .expect("Failed to build HTTP client");
+
         Self {
             token_manager: TokenManager::new(client_id.clone(), secret.clone(), base_url.clone()),
-            http_client: reqwest::Client::new(),
+            http_client,
             base_url,
             client_id,
             secret,
@@ -47,6 +59,67 @@ impl TuyaClient {
         query_params: Option<&[(&str, &str)]>,
         body: Option<Vec<u8>>,
     ) -> Result<T, AppError> {
+        let mut last_error = None;
+        let mut retry_delay = INITIAL_RETRY_DELAY_MS;
+
+        for attempt in 0..=MAX_RETRIES {
+            if attempt > 0 {
+                tracing::debug!(
+                    "Retrying request (attempt {}/{}) after {}ms",
+                    attempt + 1,
+                    MAX_RETRIES + 1,
+                    retry_delay
+                );
+                tokio::time::sleep(Duration::from_millis(retry_delay)).await;
+                retry_delay *= 2; // Exponential backoff
+            }
+
+            match self
+                .execute_request::<T>(method, path, query_params, body.clone())
+                .await
+            {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    let should_retry = Self::is_retryable_error(&e);
+                    tracing::debug!(
+                        "Request failed (attempt {}): {}, retryable: {}",
+                        attempt + 1,
+                        e,
+                        should_retry
+                    );
+
+                    if !should_retry || attempt == MAX_RETRIES {
+                        return Err(e);
+                    }
+                    last_error = Some(e);
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| {
+            AppError::Network("Request failed after all retries".to_string())
+        }))
+    }
+
+    fn is_retryable_error(error: &AppError) -> bool {
+        match error {
+            AppError::Network(_) => true, // Network errors (timeouts, connection issues)
+            AppError::Api { code, .. } => {
+                // Retry on server errors (5xx equivalent codes)
+                // Tuya API uses various codes, treat >= 500 as server errors
+                *code >= 500
+            }
+            _ => false,
+        }
+    }
+
+    async fn execute_request<T: serde::de::DeserializeOwned>(
+        &self,
+        method: &str,
+        path: &str,
+        query_params: Option<&[(&str, &str)]>,
+        body: Option<Vec<u8>>,
+    ) -> Result<T, AppError> {
         let access_token = self.token_manager.get_access_token().await?;
 
         let headers = SignedHeaders::for_api_request(
@@ -65,7 +138,13 @@ impl TuyaClient {
                 sorted.sort_by(|a, b| a.0.cmp(b.0));
                 let qs = sorted
                     .iter()
-                    .map(|(k, v)| format!("{}={}", k, v))
+                    .map(|(k, v)| {
+                        format!(
+                            "{}={}",
+                            urlencoding::encode(k),
+                            urlencoding::encode(v)
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join("&");
                 format!("{}{}?{}", self.base_url, path, qs)

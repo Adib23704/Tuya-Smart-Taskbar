@@ -3,7 +3,9 @@
     windows_subsystem = "windows"
 )]
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use tauri::{
@@ -12,6 +14,7 @@ use tauri::{
     tray::TrayIconBuilder,
     AppHandle, Manager, RunEvent, WindowEvent,
 };
+use tokio::sync::RwLock;
 
 mod commands;
 mod config;
@@ -20,15 +23,17 @@ mod tray;
 mod tuya;
 
 use config::{set_auto_launch, ConfigManager};
-use tuya::{create_shared_client, initialize_client, SharedTuyaClient};
+use tuya::{create_shared_client, initialize_client, SharedTuyaClient, TuyaDeviceStatus};
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
+
+type DeviceStatusCache = Arc<RwLock<HashMap<String, Vec<TuyaDeviceStatus>>>>;
 
 // Embed icons at compile time
 const ICON_BYTES: &[u8] = include_bytes!("../icons/icon.ico");
 const LOADING_ICON_BYTES: &[u8] = include_bytes!("../icons/loading.ico");
 
-async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool) {
+async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool, status_cache: &DeviceStatusCache) {
     let config_manager = app.state::<ConfigManager>();
     let client = app.state::<SharedTuyaClient>();
 
@@ -40,14 +45,14 @@ async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool) {
         }
     }
 
-    let menu = if !config_manager.is_configured() {
-        tray::build_unconfigured_menu(app)
+    let (menu, new_cache) = if !config_manager.is_configured() {
+        (tray::build_unconfigured_menu(app), None)
     } else {
-        match tray::build_device_menu(app, &client, &config_manager).await {
-            Ok(menu) => Ok(menu),
+        match tray::build_device_menu_with_cache(app, &client, &config_manager).await {
+            Ok((menu, device_statuses)) => (Ok(menu), Some(device_statuses)),
             Err(e) => {
                 tracing::error!("Error building device menu: {}", e);
-                tray::build_error_menu(app)
+                (tray::build_error_menu(app), None)
             }
         }
     };
@@ -60,14 +65,73 @@ async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool) {
         }
     }
 
-    if let Ok(menu) = menu {
-        if let Some(tray) = app.tray_by_id("main") {
-            let _ = tray.set_menu(Some(menu));
+    // For auto-refresh, only update menu if device states changed
+    let should_update_menu = if is_auto_refresh {
+        if let Some(ref new_statuses) = new_cache {
+            let cache = status_cache.read().await;
+            let has_changes = !statuses_equal(&cache, new_statuses);
+            if has_changes {
+                tracing::debug!("Device states changed, updating menu");
+            }
+            has_changes
+        } else {
+            true // Always update if we couldn't get new statuses (error case)
+        }
+    } else {
+        true // Always update for manual refreshes
+    };
+
+    // Update cache with new statuses
+    if let Some(new_statuses) = new_cache {
+        let mut cache = status_cache.write().await;
+        *cache = new_statuses;
+    }
+
+    if should_update_menu {
+        if let Ok(menu) = menu {
+            if let Some(tray) = app.tray_by_id("main") {
+                let _ = tray.set_menu(Some(menu));
+            }
         }
     }
 }
 
-fn handle_menu_event(app: &AppHandle, event: MenuEvent) {
+fn statuses_equal(
+    old: &HashMap<String, Vec<TuyaDeviceStatus>>,
+    new: &HashMap<String, Vec<TuyaDeviceStatus>>,
+) -> bool {
+    if old.len() != new.len() {
+        return false;
+    }
+    for (device_id, old_statuses) in old {
+        match new.get(device_id) {
+            None => return false,
+            Some(new_statuses) => {
+                if old_statuses.len() != new_statuses.len() {
+                    return false;
+                }
+                for (old_s, new_s) in old_statuses.iter().zip(new_statuses.iter()) {
+                    if old_s.code != new_s.code || !values_equal(&old_s.value, &new_s.value) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    true
+}
+
+fn values_equal(a: &tuya::TuyaValue, b: &tuya::TuyaValue) -> bool {
+    match (a, b) {
+        (tuya::TuyaValue::Boolean(a), tuya::TuyaValue::Boolean(b)) => a == b,
+        (tuya::TuyaValue::String(a), tuya::TuyaValue::String(b)) => a == b,
+        (tuya::TuyaValue::Integer(a), tuya::TuyaValue::Integer(b)) => a == b,
+        (tuya::TuyaValue::Float(a), tuya::TuyaValue::Float(b)) => (a - b).abs() < f64::EPSILON,
+        _ => false,
+    }
+}
+
+fn handle_menu_event(app: &AppHandle, event: MenuEvent, status_cache: DeviceStatusCache) {
     let id = event.id().as_ref();
     tracing::debug!("Menu event: {}", id);
 
@@ -86,6 +150,7 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent) {
             if let Some((device_id, code, value_str)) = tray::parse_command_id(id) {
                 let value = tray::parse_value(&value_str);
                 let app_handle = app.clone();
+                let cache = status_cache.clone();
 
                 tauri::async_runtime::spawn(async move {
                     let client = app_handle.state::<SharedTuyaClient>();
@@ -95,7 +160,7 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent) {
                         match tuya_client.send_device_command(&device_id, &code, value).await {
                             Ok(_) => {
                                 tracing::info!("Command sent: {}:{}", code, value_str);
-                                update_tray_menu(&app_handle, false).await;
+                                update_tray_menu(&app_handle, false, &cache).await;
                             }
                             Err(e) => {
                                 tracing::error!("Failed to send command: {}", e);
@@ -190,6 +255,9 @@ fn main() {
         tracing::warn!("Failed to set auto-launch: {}", e);
     }
 
+    // Create the device status cache
+    let status_cache: DeviceStatusCache = Arc::new(RwLock::new(HashMap::new()));
+
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -198,6 +266,7 @@ fn main() {
         }))
         .manage(shared_client.clone())
         .manage(config_manager)
+        .manage(status_cache.clone())
         .invoke_handler(tauri::generate_handler![
             commands::config::save_config,
             commands::config::get_config,
@@ -211,27 +280,32 @@ fn main() {
             commands::app::check_for_update,
             commands::app::open_external,
         ])
-        .setup(|app| {
+        .setup(move |app| {
             let icon = Image::from_bytes(ICON_BYTES)
                 .expect("Failed to load tray icon");
 
             let initial_menu = tray::build_unconfigured_menu(app.handle())
                 .expect("Failed to create initial menu");
 
+            let status_cache_for_event = status_cache.clone();
             let _tray = TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .tooltip("Tuya Smart Taskbar")
                 .menu(&initial_menu)
-                .on_menu_event(handle_menu_event)
+                .on_menu_event(move |app, event| {
+                    handle_menu_event(app, event, status_cache_for_event.clone());
+                })
                 .build(app)?;
 
             let app_handle = app.handle().clone();
+            let cache_for_init = status_cache.clone();
             tauri::async_runtime::spawn(async move {
-                update_tray_menu(&app_handle, false).await;
+                update_tray_menu(&app_handle, false, &cache_for_init).await;
             });
 
             RUNNING.store(true, Ordering::Relaxed);
             let app_handle = app.handle().clone();
+            let cache_for_loop = status_cache.clone();
             tauri::async_runtime::spawn(async move {
                 let mut interval = tokio::time::interval(Duration::from_secs(5));
                 loop {
@@ -239,7 +313,7 @@ fn main() {
                     if !RUNNING.load(Ordering::Relaxed) {
                         break;
                     }
-                    update_tray_menu(&app_handle, true).await;
+                    update_tray_menu(&app_handle, true, &cache_for_loop).await;
                 }
             });
 

@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+/// Token refresh buffer in seconds. Tokens are refreshed this many seconds before expiry.
+pub const TOKEN_REFRESH_BUFFER_SECS: i64 = 300;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TuyaDevice {
     pub id: String,
@@ -59,6 +62,15 @@ impl TuyaValue {
             _ => None,
         }
     }
+
+    #[allow(dead_code)]
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            TuyaValue::Float(v) => Some(*v),
+            TuyaValue::Integer(v) => Some(*v as f64),
+            _ => None,
+        }
+    }
 }
 
 impl std::fmt::Display for TuyaValue {
@@ -108,7 +120,7 @@ pub struct TokenState {
 impl TokenState {
     pub fn is_expired(&self) -> bool {
         let now = chrono::Utc::now().timestamp();
-        now >= (self.expires_at - 300)
+        now >= (self.expires_at - TOKEN_REFRESH_BUFFER_SECS)
     }
 }
 
