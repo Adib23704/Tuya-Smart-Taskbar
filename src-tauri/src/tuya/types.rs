@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-/// Token refresh buffer in seconds. Tokens are refreshed this many seconds before expiry.
 pub const TOKEN_REFRESH_BUFFER_SECS: i64 = 300;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

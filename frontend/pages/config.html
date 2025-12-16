@@ -569,7 +569,6 @@
 		<script>
 			const { invoke } = window.__TAURI__.core;
 
-			// Elements
 			const baseUrlSelect = document.getElementById('baseUrl');
 			const accessKeyInput = document.getElementById('accessKey');
 			const secretKeyInput = document.getElementById('secretKey');
@@ -583,7 +582,6 @@
 			const statusText = document.getElementById('statusText');
 			const statusIcon = document.getElementById('statusIcon');
 
-			// Detect system theme
 			function detectTheme() {
 				if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
 					document.documentElement.setAttribute('data-theme', 'dark');
@@ -592,23 +590,18 @@
 				}
 			}
 
-			// Listen for theme changes
 			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectTheme);
 
-			// Toggle password visibility
 			toggleSecretBtn.addEventListener('click', () => {
 				const isPassword = secretKeyInput.type === 'password';
 				secretKeyInput.type = isPassword ? 'text' : 'password';
 				if (isPassword) {
-					// Show "eye off" icon (password visible)
 					eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
 				} else {
-					// Show "eye" icon (password hidden)
 					eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
 				}
 			});
 
-			// Validation
 			function validateField(input, groupId) {
 				const group = document.getElementById(groupId);
 				const value = input.value.trim();
@@ -631,7 +624,6 @@
 				return accessValid && secretValid && userValid;
 			}
 
-			// Clear validation on input
 			accessKeyInput.addEventListener('input', () => {
 				document.getElementById('accessKeyGroup').classList.remove('error');
 			});
@@ -642,7 +634,6 @@
 				document.getElementById('userIdGroup').classList.remove('error');
 			});
 
-			// Show status message
 			function showStatus(message, isSuccess) {
 				statusMessage.className = 'status-message show ' + (isSuccess ? 'success' : 'error');
 				statusText.textContent = message;
@@ -658,7 +649,6 @@
 				statusMessage.className = 'status-message';
 			}
 
-			// Set button state
 			function setButtonState(button, state, text) {
 				const span = button.querySelector('span');
 				const svg = button.querySelector('svg:not(.spinner)');
@@ -686,7 +676,6 @@
 				}
 			}
 
-			// Test connection
 			async function testConnection() {
 				if (!validateAll()) {
 					showStatus('Please fill in all required fields', false);
@@ -697,7 +686,6 @@
 				setButtonState(testButton, 'loading', 'Testing...');
 
 				try {
-					// Save config temporarily and try to fetch devices
 					const config = {
 						baseUrl: baseUrlSelect.value,
 						accessKey: accessKeyInput.value.trim(),
@@ -726,7 +714,6 @@
 				}
 			}
 
-			// Save config
 			async function saveConfig() {
 				if (!validateAll()) {
 					showStatus('Please fill in all required fields', false);

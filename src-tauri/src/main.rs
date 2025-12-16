@@ -4,7 +4,7 @@
 )]
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,7 +14,7 @@ use tauri::{
     tray::TrayIconBuilder,
     AppHandle, Manager, RunEvent, WindowEvent,
 };
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 mod commands;
 mod config;
@@ -26,14 +26,41 @@ use config::{set_auto_launch, ConfigManager};
 use tuya::{create_shared_client, initialize_client, SharedTuyaClient, TuyaDeviceStatus};
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
+static MENU_INTERACTION_TIME: AtomicI64 = AtomicI64::new(0);
 
 type DeviceStatusCache = Arc<RwLock<HashMap<String, Vec<TuyaDeviceStatus>>>>;
+type MenuUpdateLock = Arc<Mutex<()>>;
 
-// Embed icons at compile time
 const ICON_BYTES: &[u8] = include_bytes!("../icons/icon.ico");
 const LOADING_ICON_BYTES: &[u8] = include_bytes!("../icons/loading.ico");
 
-async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool, status_cache: &DeviceStatusCache) {
+async fn update_tray_menu(
+    app: &AppHandle,
+    is_auto_refresh: bool,
+    status_cache: &DeviceStatusCache,
+    menu_lock: &MenuUpdateLock,
+) {
+    if is_auto_refresh {
+        let last_interaction = MENU_INTERACTION_TIME.load(Ordering::SeqCst);
+        let now = chrono::Utc::now().timestamp_millis();
+        if now - last_interaction < 2000 {
+            tracing::debug!("Skipping auto-refresh: recent menu interaction");
+            return;
+        }
+    }
+
+    let _guard = if is_auto_refresh {
+        match tokio::time::timeout(Duration::from_millis(100), menu_lock.lock()).await {
+            Ok(guard) => guard,
+            Err(_) => {
+                tracing::debug!("Skipping auto-refresh: menu update in progress");
+                return;
+            }
+        }
+    } else {
+        menu_lock.lock().await
+    };
+
     let config_manager = app.state::<ConfigManager>();
     let client = app.state::<SharedTuyaClient>();
 
@@ -65,7 +92,6 @@ async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool, status_cache: 
         }
     }
 
-    // For auto-refresh, only update menu if device states changed
     let should_update_menu = if is_auto_refresh {
         if let Some(ref new_statuses) = new_cache {
             let cache = status_cache.read().await;
@@ -75,13 +101,12 @@ async fn update_tray_menu(app: &AppHandle, is_auto_refresh: bool, status_cache: 
             }
             has_changes
         } else {
-            true // Always update if we couldn't get new statuses (error case)
+            true
         }
     } else {
-        true // Always update for manual refreshes
+        true
     };
 
-    // Update cache with new statuses
     if let Some(new_statuses) = new_cache {
         let mut cache = status_cache.write().await;
         *cache = new_statuses;
@@ -131,7 +156,14 @@ fn values_equal(a: &tuya::TuyaValue, b: &tuya::TuyaValue) -> bool {
     }
 }
 
-fn handle_menu_event(app: &AppHandle, event: MenuEvent, status_cache: DeviceStatusCache) {
+fn handle_menu_event(
+    app: &AppHandle,
+    event: MenuEvent,
+    status_cache: DeviceStatusCache,
+    menu_lock: MenuUpdateLock,
+) {
+    MENU_INTERACTION_TIME.store(chrono::Utc::now().timestamp_millis(), Ordering::SeqCst);
+
     let id = event.id().as_ref();
     tracing::debug!("Menu event: {}", id);
 
@@ -143,7 +175,8 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent, status_cache: DeviceStat
             open_about_window(app);
         }
         "quit" => {
-            RUNNING.store(false, Ordering::Relaxed);
+            RUNNING.store(false, Ordering::Release);
+            std::thread::sleep(Duration::from_millis(100));
             app.exit(0);
         }
         _ if id.starts_with("cmd:") => {
@@ -151,20 +184,33 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent, status_cache: DeviceStat
                 let value = tray::parse_value(&value_str);
                 let app_handle = app.clone();
                 let cache = status_cache.clone();
+                let lock = menu_lock.clone();
 
                 tauri::async_runtime::spawn(async move {
-                    let client = app_handle.state::<SharedTuyaClient>();
-                    let guard = client.read().await;
+                    let result = {
+                        let client = app_handle.state::<SharedTuyaClient>();
+                        let guard = client.read().await;
+                        if let Some(tuya_client) = guard.as_ref() {
+                            Some(
+                                tuya_client
+                                    .send_device_command(&device_id, &code, value)
+                                    .await,
+                            )
+                        } else {
+                            None
+                        }
+                    };
 
-                    if let Some(tuya_client) = guard.as_ref() {
-                        match tuya_client.send_device_command(&device_id, &code, value).await {
-                            Ok(_) => {
-                                tracing::info!("Command sent: {}:{}", code, value_str);
-                                update_tray_menu(&app_handle, false, &cache).await;
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to send command: {}", e);
-                            }
+                    match result {
+                        Some(Ok(_)) => {
+                            tracing::info!("Command sent: {}:{}", code, value_str);
+                            update_tray_menu(&app_handle, false, &cache, &lock).await;
+                        }
+                        Some(Err(e)) => {
+                            tracing::error!("Failed to send command: {}", e);
+                        }
+                        None => {
+                            tracing::error!("Client not initialized");
                         }
                     }
                 });
@@ -255,8 +301,8 @@ fn main() {
         tracing::warn!("Failed to set auto-launch: {}", e);
     }
 
-    // Create the device status cache
     let status_cache: DeviceStatusCache = Arc::new(RwLock::new(HashMap::new()));
+    let menu_update_lock: MenuUpdateLock = Arc::new(Mutex::new(()));
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -288,33 +334,51 @@ fn main() {
                 .expect("Failed to create initial menu");
 
             let status_cache_for_event = status_cache.clone();
+            let menu_lock_for_event = menu_update_lock.clone();
             let _tray = TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .tooltip("Tuya Smart Taskbar")
                 .menu(&initial_menu)
                 .on_menu_event(move |app, event| {
-                    handle_menu_event(app, event, status_cache_for_event.clone());
+                    handle_menu_event(
+                        app,
+                        event,
+                        status_cache_for_event.clone(),
+                        menu_lock_for_event.clone(),
+                    );
                 })
                 .build(app)?;
 
             let app_handle = app.handle().clone();
             let cache_for_init = status_cache.clone();
+            let lock_for_init = menu_update_lock.clone();
             tauri::async_runtime::spawn(async move {
-                update_tray_menu(&app_handle, false, &cache_for_init).await;
+                update_tray_menu(&app_handle, false, &cache_for_init, &lock_for_init).await;
             });
 
-            RUNNING.store(true, Ordering::Relaxed);
+            RUNNING.store(true, Ordering::Release);
             let app_handle = app.handle().clone();
             let cache_for_loop = status_cache.clone();
+            let lock_for_loop = menu_update_lock.clone();
             tauri::async_runtime::spawn(async move {
-                let mut interval = tokio::time::interval(Duration::from_secs(5));
+                let mut interval = tokio::time::interval(Duration::from_secs(10));
                 loop {
                     interval.tick().await;
-                    if !RUNNING.load(Ordering::Relaxed) {
+                    if !RUNNING.load(Ordering::Acquire) {
                         break;
                     }
-                    update_tray_menu(&app_handle, true, &cache_for_loop).await;
+
+                    let result = tokio::time::timeout(
+                        Duration::from_secs(15),
+                        update_tray_menu(&app_handle, true, &cache_for_loop, &lock_for_loop),
+                    )
+                    .await;
+
+                    if result.is_err() {
+                        tracing::warn!("Auto-refresh timed out, will retry next cycle");
+                    }
                 }
+                tracing::info!("Auto-refresh loop terminated");
             });
 
             tracing::info!("Application setup complete");
@@ -331,7 +395,7 @@ fn main() {
 
     app.run(|_app_handle, event| {
         if let RunEvent::ExitRequested { api, .. } = event {
-            if RUNNING.load(Ordering::Relaxed) {
+            if RUNNING.load(Ordering::Acquire) {
                 api.prevent_exit();
             }
         }

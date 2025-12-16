@@ -237,7 +237,6 @@ pub async fn build_device_menu_with_cache(
     let devices = tuya_client.fetch_devices(&user_id).await?;
     let online_devices: Vec<_> = devices.iter().filter(|d| d.online).collect();
 
-    // Fetch all device statuses in parallel for better performance
     let status_futures: Vec<_> = online_devices
         .iter()
         .map(|d| tuya_client.fetch_device_status(&d.id))
@@ -245,7 +244,6 @@ pub async fn build_device_menu_with_cache(
 
     let statuses: Vec<Result<Vec<TuyaDeviceStatus>, AppError>> = join_all(status_futures).await;
 
-    // Build menu items with fetched statuses
     for (device, status_result) in online_devices.iter().zip(statuses.into_iter()) {
         match status_result {
             Ok(status) => {
@@ -256,7 +254,6 @@ pub async fn build_device_menu_with_cache(
             }
             Err(e) => {
                 tracing::warn!("Failed to fetch status for device {}: {}", device.id, e);
-                // Add device with error indicator
                 let submenu = Submenu::new(app, format!("{} (error)", device.name), true)
                     .map_err(|e| AppError::Tray(e.to_string()))?;
                 let error_item = MenuItem::with_id(

@@ -71,7 +71,7 @@ impl TuyaClient {
                     retry_delay
                 );
                 tokio::time::sleep(Duration::from_millis(retry_delay)).await;
-                retry_delay *= 2; // Exponential backoff
+                retry_delay *= 2;
             }
 
             match self
@@ -103,10 +103,8 @@ impl TuyaClient {
 
     fn is_retryable_error(error: &AppError) -> bool {
         match error {
-            AppError::Network(_) => true, // Network errors (timeouts, connection issues)
+            AppError::Network(_) => true,
             AppError::Api { code, .. } => {
-                // Retry on server errors (5xx equivalent codes)
-                // Tuya API uses various codes, treat >= 500 as server errors
                 *code >= 500
             }
             _ => false,

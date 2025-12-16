@@ -59,7 +59,6 @@ impl TokenManager {
                     cooldown_remaining
                 )));
             }
-            // Cooldown expired, reset failure count
             self.consecutive_failures.store(0, Ordering::Relaxed);
         }
         Ok(())
@@ -78,7 +77,6 @@ impl TokenManager {
     }
 
     pub async fn get_access_token(&self) -> Result<String, AppError> {
-        // Check if we have a valid cached token first
         {
             let state = self.token_state.read().await;
             if let Some(ref token) = *state {
@@ -88,17 +86,14 @@ impl TokenManager {
             }
         }
 
-        // Check rate limit before making network requests
         self.check_rate_limit()?;
 
         let mut state = self.token_state.write().await;
 
-        // Double-check token validity after acquiring write lock
         if let Some(ref token) = *state {
             if !token.is_expired() {
                 return Ok(token.access_token.clone());
             }
-            // Try to refresh existing token
             match self.refresh_token_internal(&token.refresh_token).await {
                 Ok(new_state) => {
                     self.record_success();
@@ -113,7 +108,6 @@ impl TokenManager {
             }
         }
 
-        // Acquire new token
         match self.acquire_token().await {
             Ok(new_state) => {
                 self.record_success();
