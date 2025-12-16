@@ -12,6 +12,7 @@ use crate::tuya::{
     SharedTuyaClient, TuyaDevice, TuyaDeviceStatus, TuyaValue, AC_FAN_SPEED_LEVELS,
     AC_MODES, FAN_SPEED_LEVELS, TEMP_MAX, TEMP_MIN,
 };
+use crate::update::SharedUpdateState;
 
 fn format_label(code: &str) -> String {
     code.split('_')
@@ -167,8 +168,41 @@ pub fn build_device_submenu(
     Ok(submenu)
 }
 
-pub fn build_unconfigured_menu(app: &AppHandle) -> Result<Menu<Wry>, AppError> {
+async fn append_update_item(
+    app: &AppHandle,
+    menu: &Menu<Wry>,
+    update_state: &SharedUpdateState,
+) -> Result<bool, AppError> {
+    let guard = update_state.read().await;
+    if guard.update_available {
+        if let Some(ref version) = guard.latest_version {
+            let update_item = MenuItem::with_id(
+                app,
+                "open_update",
+                format!("Update Available (v{})", version),
+                true,
+                None::<&str>,
+            )
+            .map_err(|e| AppError::Tray(e.to_string()))?;
+            menu.append(&update_item)
+                .map_err(|e| AppError::Tray(e.to_string()))?;
+            menu.append(
+                &PredefinedMenuItem::separator(app).map_err(|e| AppError::Tray(e.to_string()))?,
+            )
+            .map_err(|e| AppError::Tray(e.to_string()))?;
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+pub async fn build_unconfigured_menu(
+    app: &AppHandle,
+    update_state: &SharedUpdateState,
+) -> Result<Menu<Wry>, AppError> {
     let menu = Menu::new(app).map_err(|e| AppError::Tray(e.to_string()))?;
+
+    append_update_item(app, &menu, update_state).await?;
 
     let config_item =
         MenuItem::with_id(app, "open_config", "Open Configuration", true, None::<&str>)
@@ -190,8 +224,13 @@ pub fn build_unconfigured_menu(app: &AppHandle) -> Result<Menu<Wry>, AppError> {
     Ok(menu)
 }
 
-pub fn build_error_menu(app: &AppHandle) -> Result<Menu<Wry>, AppError> {
+pub async fn build_error_menu(
+    app: &AppHandle,
+    update_state: &SharedUpdateState,
+) -> Result<Menu<Wry>, AppError> {
     let menu = Menu::new(app).map_err(|e| AppError::Tray(e.to_string()))?;
+
+    append_update_item(app, &menu, update_state).await?;
 
     let error_item = MenuItem::with_id(app, "error", "Error loading devices", false, None::<&str>)
         .map_err(|e| AppError::Tray(e.to_string()))?;
@@ -223,9 +262,12 @@ pub async fn build_device_menu_with_cache(
     app: &AppHandle,
     client: &SharedTuyaClient,
     config: &ConfigManager,
+    update_state: &SharedUpdateState,
 ) -> Result<(Menu<Wry>, HashMap<String, Vec<TuyaDeviceStatus>>), AppError> {
     let menu = Menu::new(app).map_err(|e| AppError::Tray(e.to_string()))?;
     let mut device_statuses: HashMap<String, Vec<TuyaDeviceStatus>> = HashMap::new();
+
+    append_update_item(app, &menu, update_state).await?;
 
     let user_id = config
         .get_user_id()

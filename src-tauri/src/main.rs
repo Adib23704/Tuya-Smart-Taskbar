@@ -4,7 +4,7 @@
 )]
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,31 +14,35 @@ use tauri::{
     tray::TrayIconBuilder,
     AppHandle, Manager, RunEvent, WindowEvent,
 };
+use tauri_plugin_notification::NotificationExt;
 use tokio::sync::{Mutex, RwLock};
 
-mod commands;
-mod config;
-mod error;
-mod tray;
-mod tuya;
-
-use config::{set_auto_launch, ConfigManager};
-use tuya::{create_shared_client, initialize_client, SharedTuyaClient, TuyaDeviceStatus};
+use tuya_smart_taskbar::{
+    commands,
+    config::{set_auto_launch, ConfigManager},
+    tray, tuya,
+    tuya::{create_shared_client, initialize_client, SharedTuyaClient, TuyaDeviceStatus},
+    update::{self, create_update_state, SharedUpdateState},
+};
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
 static MENU_INTERACTION_TIME: AtomicI64 = AtomicI64::new(0);
+static UPDATE_CHECK_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 type DeviceStatusCache = Arc<RwLock<HashMap<String, Vec<TuyaDeviceStatus>>>>;
 type MenuUpdateLock = Arc<Mutex<()>>;
 
 const ICON_BYTES: &[u8] = include_bytes!("../icons/icon.ico");
 const LOADING_ICON_BYTES: &[u8] = include_bytes!("../icons/loading.ico");
+const UPDATE_ICON_BYTES: &[u8] = include_bytes!("../icons/update.ico");
+const UPDATE_CHECK_INTERVAL: u64 = 360;
 
 async fn update_tray_menu(
     app: &AppHandle,
     is_auto_refresh: bool,
     status_cache: &DeviceStatusCache,
     menu_lock: &MenuUpdateLock,
+    update_state: &SharedUpdateState,
 ) {
     if is_auto_refresh {
         let last_interaction = MENU_INTERACTION_TIME.load(Ordering::SeqCst);
@@ -73,22 +77,43 @@ async fn update_tray_menu(
     }
 
     let (menu, new_cache) = if !config_manager.is_configured() {
-        (tray::build_unconfigured_menu(app), None)
+        (tray::build_unconfigured_menu(app, update_state).await, None)
     } else {
-        match tray::build_device_menu_with_cache(app, &client, &config_manager).await {
+        match tray::build_device_menu_with_cache(app, &client, &config_manager, update_state).await
+        {
             Ok((menu, device_statuses)) => (Ok(menu), Some(device_statuses)),
             Err(e) => {
                 tracing::error!("Error building device menu: {}", e);
-                (tray::build_error_menu(app), None)
+                (tray::build_error_menu(app, update_state).await, None)
             }
         }
     };
 
     if !is_auto_refresh {
+        let has_update = {
+            let guard = update_state.read().await;
+            guard.update_available
+        };
         if let Some(tray) = app.tray_by_id("main") {
-            if let Ok(icon) = Image::from_bytes(ICON_BYTES) {
+            let icon_bytes = if has_update {
+                UPDATE_ICON_BYTES
+            } else {
+                ICON_BYTES
+            };
+            if let Ok(icon) = Image::from_bytes(icon_bytes) {
                 let _ = tray.set_icon(Some(icon));
             }
+            let tooltip = if has_update {
+                let guard = update_state.read().await;
+                if let Some(ref version) = guard.latest_version {
+                    format!("Tuya Smart Taskbar - Update Available (v{})", version)
+                } else {
+                    "Tuya Smart Taskbar - Update Available".to_string()
+                }
+            } else {
+                "Tuya Smart Taskbar".to_string()
+            };
+            let _ = tray.set_tooltip(Some(&tooltip));
         }
     }
 
@@ -156,11 +181,79 @@ fn values_equal(a: &tuya::TuyaValue, b: &tuya::TuyaValue) -> bool {
     }
 }
 
+async fn check_and_notify_update(
+    app: &AppHandle,
+    update_state: &SharedUpdateState,
+    status_cache: Option<&DeviceStatusCache>,
+    menu_lock: Option<&MenuUpdateLock>,
+) -> bool {
+    tracing::debug!("Checking for updates...");
+
+    if let Some(update_info) = update::check_for_update(app).await {
+        tracing::debug!(
+            "Update check result: current={}, latest={}, available={}",
+            update_info.current_version,
+            update_info.latest_version,
+            update_info.available
+        );
+
+        let (is_new, should_notify) = update::update_state(update_state, &update_info).await;
+
+        if is_new {
+            tracing::info!(
+                "Update available: {} -> {}",
+                update_info.current_version,
+                update_info.latest_version
+            );
+
+            if let Some(tray) = app.tray_by_id("main") {
+                if let Ok(icon) = Image::from_bytes(UPDATE_ICON_BYTES) {
+                    let _ = tray.set_icon(Some(icon));
+                }
+                let tooltip = format!(
+                    "Tuya Smart Taskbar - Update Available (v{})",
+                    update_info.latest_version
+                );
+                let _ = tray.set_tooltip(Some(&tooltip));
+            }
+
+            if let (Some(cache), Some(lock)) = (status_cache, menu_lock) {
+                tracing::debug!("Rebuilding menu to show update indicator");
+                update_tray_menu(app, false, cache, lock, update_state).await;
+            }
+        }
+
+        if should_notify {
+            tracing::info!("Sending update notification");
+            match app
+                .notification()
+                .builder()
+                .title("Tuya Smart Taskbar Update Available")
+                .body(format!(
+                    "Version {} is now available. Click the tray icon to update.",
+                    update_info.latest_version
+                ))
+                .show()
+            {
+                Ok(_) => tracing::debug!("Notification sent successfully"),
+                Err(e) => tracing::error!("Failed to send notification: {}", e),
+            }
+        }
+
+        return is_new;
+    } else {
+        tracing::debug!("Update check failed or returned no info");
+    }
+
+    false
+}
+
 fn handle_menu_event(
     app: &AppHandle,
     event: MenuEvent,
     status_cache: DeviceStatusCache,
     menu_lock: MenuUpdateLock,
+    update_state: SharedUpdateState,
 ) {
     MENU_INTERACTION_TIME.store(chrono::Utc::now().timestamp_millis(), Ordering::SeqCst);
 
@@ -174,6 +267,9 @@ fn handle_menu_event(
         "open_about" => {
             open_about_window(app);
         }
+        "open_update" => {
+            let _ = open::that(update::get_download_url());
+        }
         "quit" => {
             RUNNING.store(false, Ordering::Release);
             std::thread::sleep(Duration::from_millis(100));
@@ -185,6 +281,7 @@ fn handle_menu_event(
                 let app_handle = app.clone();
                 let cache = status_cache.clone();
                 let lock = menu_lock.clone();
+                let update_st = update_state.clone();
 
                 tauri::async_runtime::spawn(async move {
                     let result = {
@@ -204,7 +301,7 @@ fn handle_menu_event(
                     match result {
                         Some(Ok(_)) => {
                             tracing::info!("Command sent: {}:{}", code, value_str);
-                            update_tray_menu(&app_handle, false, &cache, &lock).await;
+                            update_tray_menu(&app_handle, false, &cache, &lock, &update_st).await;
                         }
                         Some(Err(e)) => {
                             tracing::error!("Failed to send command: {}", e);
@@ -274,7 +371,7 @@ fn main() {
         )
         .init();
 
-    tracing::info!("Starting Tuya Smart Taskbar v2.0.0");
+    tracing::info!("Starting Tuya Smart Taskbar v2.1.0");
 
     let config_manager = ConfigManager::new();
     let shared_client = create_shared_client();
@@ -303,9 +400,11 @@ fn main() {
 
     let status_cache: DeviceStatusCache = Arc::new(RwLock::new(HashMap::new()));
     let menu_update_lock: MenuUpdateLock = Arc::new(Mutex::new(()));
+    let update_state: SharedUpdateState = create_update_state();
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             tracing::info!("Second instance detected, focusing existing window");
             open_config_window(app);
@@ -313,6 +412,7 @@ fn main() {
         .manage(shared_client.clone())
         .manage(config_manager)
         .manage(status_cache.clone())
+        .manage(update_state.clone())
         .invoke_handler(tauri::generate_handler![
             commands::config::save_config,
             commands::config::get_config,
@@ -327,14 +427,17 @@ fn main() {
             commands::app::open_external,
         ])
         .setup(move |app| {
-            let icon = Image::from_bytes(ICON_BYTES)
-                .expect("Failed to load tray icon");
+            let icon = Image::from_bytes(ICON_BYTES).expect("Failed to load tray icon");
 
-            let initial_menu = tray::build_unconfigured_menu(app.handle())
-                .expect("Failed to create initial menu");
+            let update_state_for_menu = update_state.clone();
+            let initial_menu = tauri::async_runtime::block_on(async {
+                tray::build_unconfigured_menu(app.handle(), &update_state_for_menu).await
+            })
+            .expect("Failed to create initial menu");
 
             let status_cache_for_event = status_cache.clone();
             let menu_lock_for_event = menu_update_lock.clone();
+            let update_state_for_event = update_state.clone();
             let _tray = TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .tooltip("Tuya Smart Taskbar")
@@ -345,6 +448,7 @@ fn main() {
                         event,
                         status_cache_for_event.clone(),
                         menu_lock_for_event.clone(),
+                        update_state_for_event.clone(),
                     );
                 })
                 .build(app)?;
@@ -352,14 +456,38 @@ fn main() {
             let app_handle = app.handle().clone();
             let cache_for_init = status_cache.clone();
             let lock_for_init = menu_update_lock.clone();
+            let update_state_for_init = update_state.clone();
             tauri::async_runtime::spawn(async move {
-                update_tray_menu(&app_handle, false, &cache_for_init, &lock_for_init).await;
+                update_tray_menu(
+                    &app_handle,
+                    false,
+                    &cache_for_init,
+                    &lock_for_init,
+                    &update_state_for_init,
+                )
+                .await;
+            });
+
+            let app_handle = app.handle().clone();
+            let cache_for_startup = status_cache.clone();
+            let lock_for_startup = menu_update_lock.clone();
+            let update_state_for_startup = update_state.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(3)).await;
+                check_and_notify_update(
+                    &app_handle,
+                    &update_state_for_startup,
+                    Some(&cache_for_startup),
+                    Some(&lock_for_startup),
+                )
+                .await;
             });
 
             RUNNING.store(true, Ordering::Release);
             let app_handle = app.handle().clone();
             let cache_for_loop = status_cache.clone();
             let lock_for_loop = menu_update_lock.clone();
+            let update_state_for_loop = update_state.clone();
             tauri::async_runtime::spawn(async move {
                 let mut interval = tokio::time::interval(Duration::from_secs(10));
                 loop {
@@ -368,9 +496,26 @@ fn main() {
                         break;
                     }
 
+                    let counter = UPDATE_CHECK_COUNTER.fetch_add(1, Ordering::Relaxed);
+                    if counter % UPDATE_CHECK_INTERVAL == 0 && counter > 0 {
+                        check_and_notify_update(
+                            &app_handle,
+                            &update_state_for_loop,
+                            Some(&cache_for_loop),
+                            Some(&lock_for_loop),
+                        )
+                        .await;
+                    }
+
                     let result = tokio::time::timeout(
                         Duration::from_secs(15),
-                        update_tray_menu(&app_handle, true, &cache_for_loop, &lock_for_loop),
+                        update_tray_menu(
+                            &app_handle,
+                            true,
+                            &cache_for_loop,
+                            &lock_for_loop,
+                            &update_state_for_loop,
+                        ),
                     )
                     .await;
 
