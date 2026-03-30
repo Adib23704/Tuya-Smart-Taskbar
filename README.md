@@ -106,7 +106,7 @@ pnpm dev    # run in development
 pnpm build  # production build
 ```
 
-If you plan to bundle a Linux distributable later, update `src-tauri/tauri.conf.json` bundle targets (e.g. `appimage`, `deb`).
+Linux bundle targets (e.g. `appimage`, `deb`) are already configured in `src-tauri/tauri.conf.json`; adjust them there only if you need different formats.
 
 Note: if the build fails with an error about a missing `src-tauri/icons/icon.png`, generate it from the provided `icon.ico`:
 
