@@ -18,9 +18,10 @@ echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.
 sudo apt update
 sudo apt-get install -y nodejs
 
-echo "Enabling corepack and activating pnpm ${PNPM_VERSION:-10.24.0} (project expects pnpm@10.24.0)..."
+PNPM_VERSION="${PNPM_VERSION:-10.24.0}"
+echo "Enabling corepack and activating pnpm ${PNPM_VERSION} (project expects pnpm@10.24.0)..."
 corepack enable || true
-corepack prepare pnpm@10.24.0 --activate || sudo npm i -g pnpm@10.24.0
+corepack prepare "pnpm@${PNPM_VERSION}" --activate || sudo npm i -g "pnpm@${PNPM_VERSION}"
 
 if ! command -v rustc >/dev/null 2>&1; then
   echo "Installing Rust (rustup)..."
