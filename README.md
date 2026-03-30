@@ -108,10 +108,10 @@ pnpm build  # production build
 
 Linux bundle targets (e.g. `appimage`, `deb`) are already configured in `src-tauri/tauri.conf.json`; adjust them there only if you need different formats.
 
-Note: if the build fails with an error about a missing `src-tauri/icons/icon.png`, generate it from the provided `icon.ico`:
+Note: if the build fails with an error about a missing `src-tauri/icons/icon.png`, generate it from the provided `icon.ico`. You can, for example, open `src-tauri/icons/icon.ico` in an image editor and export it as `src-tauri/icons/icon.png`, or use a tool like ImageMagick:
 
 ```bash
-scripts/generate-icons.sh
+convert src-tauri/icons/icon.ico[0] -resize 512x512 src-tauri/icons/icon.png
 ```
 
 ## Setup
