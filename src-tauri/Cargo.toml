@@ -1,7 +1,7 @@
 [package]
 name = "tuya-smart-taskbar"
-version = "2.1.0"
-description = "Windows Taskbar App for controlling Tuya Smart Devices"
+version = "2.2.0"
+description = "System tray app for controlling Tuya Smart Devices"
 authors = ["Zahin A. Adib <adib23704@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/Adib23704/Tuya-Smart-Taskbar"

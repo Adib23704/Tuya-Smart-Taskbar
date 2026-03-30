@@ -9,10 +9,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tauri::{
-    image::Image,
-    menu::MenuEvent,
-    tray::TrayIconBuilder,
-    AppHandle, Manager, RunEvent, WindowEvent,
+    image::Image, menu::MenuEvent, tray::TrayIconBuilder, AppHandle, Manager, RunEvent, WindowEvent,
 };
 use tauri_plugin_notification::NotificationExt;
 use tokio::sync::{Mutex, RwLock};
@@ -20,8 +17,10 @@ use tokio::sync::{Mutex, RwLock};
 use tuya_smart_taskbar::{
     commands,
     config::{set_auto_launch, ConfigManager},
-    tray, tuya,
-    tuya::{create_shared_client, initialize_client, SharedTuyaClient, TuyaDeviceStatus},
+    tray::{self, MenuItemRegistry},
+    tuya::{
+        create_shared_client, initialize_client, SharedTuyaClient, TuyaDeviceStatus, TuyaValue,
+    },
     update::{self, create_update_state, SharedUpdateState},
 };
 
@@ -43,6 +42,7 @@ async fn update_tray_menu(
     status_cache: &DeviceStatusCache,
     menu_lock: &MenuUpdateLock,
     update_state: &SharedUpdateState,
+    menu_registry: &MenuItemRegistry,
 ) {
     if is_auto_refresh {
         let last_interaction = MENU_INTERACTION_TIME.load(Ordering::SeqCst);
@@ -76,108 +76,96 @@ async fn update_tray_menu(
         }
     }
 
-    let (menu, new_cache) = if !config_manager.is_configured() {
-        (tray::build_unconfigured_menu(app, update_state).await, None)
-    } else {
-        match tray::build_device_menu_with_cache(app, &client, &config_manager, update_state).await
-        {
-            Ok((menu, device_statuses)) => (Ok(menu), Some(device_statuses)),
-            Err(e) => {
-                tracing::error!("Error building device menu: {}", e);
-                (tray::build_error_menu(app, update_state).await, None)
-            }
-        }
-    };
-
-    if !is_auto_refresh {
-        let has_update = {
-            let guard = update_state.read().await;
-            guard.update_available
-        };
-        if let Some(tray) = app.tray_by_id("main") {
-            let icon_bytes = if has_update {
-                UPDATE_ICON_BYTES
-            } else {
-                ICON_BYTES
-            };
-            if let Ok(icon) = Image::from_bytes(icon_bytes) {
-                let _ = tray.set_icon(Some(icon));
-            }
-            let tooltip = if has_update {
-                let guard = update_state.read().await;
-                if let Some(ref version) = guard.latest_version {
-                    format!("Tuya Smart Taskbar - Update Available (v{})", version)
-                } else {
-                    "Tuya Smart Taskbar - Update Available".to_string()
-                }
-            } else {
-                "Tuya Smart Taskbar".to_string()
-            };
-            let _ = tray.set_tooltip(Some(&tooltip));
-        }
-    }
-
-    let should_update_menu = if is_auto_refresh {
-        if let Some(ref new_statuses) = new_cache {
-            let cache = status_cache.read().await;
-            let has_changes = !statuses_equal(&cache, new_statuses);
-            if has_changes {
-                tracing::debug!("Device states changed, updating menu");
-            }
-            has_changes
-        } else {
-            true
-        }
-    } else {
-        true
-    };
-
-    if let Some(new_statuses) = new_cache {
-        let mut cache = status_cache.write().await;
-        *cache = new_statuses;
-    }
-
-    if should_update_menu {
+    // Unconfigured path — no registry interaction needed
+    if !config_manager.is_configured() {
+        let menu = tray::build_unconfigured_menu(app, update_state).await;
         if let Ok(menu) = menu {
             if let Some(tray) = app.tray_by_id("main") {
                 let _ = tray.set_menu(Some(menu));
             }
         }
+        if !is_auto_refresh {
+            restore_tray_icon(app, update_state).await;
+        }
+        return;
     }
-}
 
-fn statuses_equal(
-    old: &HashMap<String, Vec<TuyaDeviceStatus>>,
-    new: &HashMap<String, Vec<TuyaDeviceStatus>>,
-) -> bool {
-    if old.len() != new.len() {
-        return false;
-    }
-    for (device_id, old_statuses) in old {
-        match new.get(device_id) {
-            None => return false,
-            Some(new_statuses) => {
-                if old_statuses.len() != new_statuses.len() {
-                    return false;
+    // Configured path — build device menu (returns 3-tuple)
+    match tray::build_device_menu_with_cache(app, &client, &config_manager, update_state).await {
+        Ok((menu, new_statuses, new_registry_entries)) => {
+            let old_cache = status_cache.read().await.clone();
+
+            // Two-path decision
+            if is_auto_refresh
+                && !old_cache.is_empty()
+                && !tray::is_structural_change(&old_cache, &new_statuses)
+            {
+                // In-place path: only update check states if values differ
+                if old_cache != new_statuses {
+                    let registry = menu_registry.read().await;
+                    let updated =
+                        tray::update_menu_items_in_place(&registry, &old_cache, &new_statuses);
+                    tracing::debug!("In-place update: {} items changed", updated);
                 }
-                for (old_s, new_s) in old_statuses.iter().zip(new_statuses.iter()) {
-                    if old_s.code != new_s.code || !values_equal(&old_s.value, &new_s.value) {
-                        return false;
-                    }
+                // Update cache only — do NOT set_menu
+                let mut cache = status_cache.write().await;
+                *cache = new_statuses;
+            } else {
+                // Full rebuild path: set_menu and replace registry
+                if let Some(tray) = app.tray_by_id("main") {
+                    let _ = tray.set_menu(Some(menu));
                 }
+                {
+                    let mut registry = menu_registry.write().await;
+                    *registry = new_registry_entries;
+                }
+                let mut cache = status_cache.write().await;
+                *cache = new_statuses;
             }
         }
+        Err(e) => {
+            tracing::error!("Error building device menu: {}", e);
+            let menu = tray::build_error_menu(app, update_state).await;
+            if let Ok(menu) = menu {
+                if let Some(tray) = app.tray_by_id("main") {
+                    let _ = tray.set_menu(Some(menu));
+                }
+            }
+            // Clear registry on error
+            let mut registry = menu_registry.write().await;
+            registry.clear();
+        }
     }
-    true
+
+    if !is_auto_refresh {
+        restore_tray_icon(app, update_state).await;
+    }
 }
 
-fn values_equal(a: &tuya::TuyaValue, b: &tuya::TuyaValue) -> bool {
-    match (a, b) {
-        (tuya::TuyaValue::Boolean(a), tuya::TuyaValue::Boolean(b)) => a == b,
-        (tuya::TuyaValue::String(a), tuya::TuyaValue::String(b)) => a == b,
-        (tuya::TuyaValue::Integer(a), tuya::TuyaValue::Integer(b)) => a == b,
-        (tuya::TuyaValue::Float(a), tuya::TuyaValue::Float(b)) => (a - b).abs() < f64::EPSILON,
-        _ => false,
+async fn restore_tray_icon(app: &AppHandle, update_state: &SharedUpdateState) {
+    let (has_update, latest_version) = {
+        let guard = update_state.read().await;
+        (guard.update_available, guard.latest_version.clone())
+    };
+    if let Some(tray) = app.tray_by_id("main") {
+        let icon_bytes = if has_update {
+            UPDATE_ICON_BYTES
+        } else {
+            ICON_BYTES
+        };
+        if let Ok(icon) = Image::from_bytes(icon_bytes) {
+            let _ = tray.set_icon(Some(icon));
+        }
+        let tooltip = if has_update {
+            if let Some(ref version) = latest_version {
+                format!("Tuya Smart Taskbar - Update Available (v{})", version)
+            } else {
+                "Tuya Smart Taskbar - Update Available".to_string()
+            }
+        } else {
+            "Tuya Smart Taskbar".to_string()
+        };
+        let _ = tray.set_tooltip(Some(&tooltip));
     }
 }
 
@@ -186,6 +174,7 @@ async fn check_and_notify_update(
     update_state: &SharedUpdateState,
     status_cache: Option<&DeviceStatusCache>,
     menu_lock: Option<&MenuUpdateLock>,
+    menu_registry: Option<&MenuItemRegistry>,
 ) -> bool {
     tracing::debug!("Checking for updates...");
 
@@ -217,9 +206,9 @@ async fn check_and_notify_update(
                 let _ = tray.set_tooltip(Some(&tooltip));
             }
 
-            if let (Some(cache), Some(lock)) = (status_cache, menu_lock) {
+            if let (Some(cache), Some(lock), Some(reg)) = (status_cache, menu_lock, menu_registry) {
                 tracing::debug!("Rebuilding menu to show update indicator");
-                update_tray_menu(app, false, cache, lock, update_state).await;
+                update_tray_menu(app, false, cache, lock, update_state, reg).await;
             }
         }
 
@@ -254,6 +243,7 @@ fn handle_menu_event(
     status_cache: DeviceStatusCache,
     menu_lock: MenuUpdateLock,
     update_state: SharedUpdateState,
+    menu_registry: MenuItemRegistry,
 ) {
     MENU_INTERACTION_TIME.store(chrono::Utc::now().timestamp_millis(), Ordering::SeqCst);
 
@@ -270,18 +260,88 @@ fn handle_menu_event(
         "open_update" => {
             let _ = open::that(update::get_download_url());
         }
+        "refresh" => {
+            let app_handle = app.clone();
+            let cache = status_cache.clone();
+            let lock = menu_lock.clone();
+            let update_st = update_state.clone();
+            let registry = menu_registry.clone();
+            tauri::async_runtime::spawn(async move {
+                update_tray_menu(&app_handle, false, &cache, &lock, &update_st, &registry).await;
+            });
+        }
         "quit" => {
             RUNNING.store(false, Ordering::Release);
             std::thread::sleep(Duration::from_millis(100));
             app.exit(0);
         }
-        _ if id.starts_with("cmd:") => {
+        _ if id.starts_with("toggle:") => {
+            if let Some((device_id, code, _)) = tray::parse_command_id(id) {
+                let app_handle = app.clone();
+                let cache = status_cache.clone();
+                let registry = menu_registry.clone();
+
+                tauri::async_runtime::spawn(async move {
+                    // Look up current boolean value from cache
+                    let current = {
+                        let cache_guard = cache.read().await;
+                        cache_guard
+                            .get(&device_id)
+                            .and_then(|statuses| {
+                                statuses
+                                    .iter()
+                                    .find(|s| s.code == code)
+                                    .and_then(|s| s.value.as_bool())
+                            })
+                            .unwrap_or(false)
+                    };
+
+                    let result = {
+                        let client = app_handle.state::<SharedTuyaClient>();
+                        let guard = client.read().await;
+                        if let Some(tuya_client) = guard.as_ref() {
+                            Some(
+                                tuya_client
+                                    .toggle_device_state(&device_id, &code, current)
+                                    .await,
+                            )
+                        } else {
+                            None
+                        }
+                    };
+
+                    match result {
+                        Some(Ok(_)) => {
+                            tracing::info!("Toggled {}:{} (was {})", device_id, code, current);
+                            // Immediate in-place feedback: update check mark and cache
+                            let reg = registry.read().await;
+                            let key = format!("{}:{}", device_id, code);
+                            if let Some(item) = reg.get(&key) {
+                                let _ = item.set_checked(!current);
+                            }
+                            drop(reg);
+                            // Update cache to reflect new state
+                            let mut cache_guard = cache.write().await;
+                            if let Some(statuses) = cache_guard.get_mut(&device_id) {
+                                if let Some(s) = statuses.iter_mut().find(|s| s.code == code) {
+                                    s.value = TuyaValue::Boolean(!current);
+                                }
+                            }
+                        }
+                        Some(Err(e)) => {
+                            tracing::error!("Failed to toggle: {}", e);
+                        }
+                        None => {
+                            tracing::error!("Client not initialized");
+                        }
+                    }
+                });
+            }
+        }
+        _ if id.starts_with("set:") || id.starts_with("cmd:") => {
             if let Some((device_id, code, value_str)) = tray::parse_command_id(id) {
                 let value = tray::parse_value(&value_str);
                 let app_handle = app.clone();
-                let cache = status_cache.clone();
-                let lock = menu_lock.clone();
-                let update_st = update_state.clone();
 
                 tauri::async_runtime::spawn(async move {
                     let result = {
@@ -301,7 +361,6 @@ fn handle_menu_event(
                     match result {
                         Some(Ok(_)) => {
                             tracing::info!("Command sent: {}:{}", code, value_str);
-                            update_tray_menu(&app_handle, false, &cache, &lock, &update_st).await;
                         }
                         Some(Err(e)) => {
                             tracing::error!("Failed to send command: {}", e);
@@ -371,7 +430,7 @@ fn main() {
         )
         .init();
 
-    tracing::info!("Starting Tuya Smart Taskbar v2.1.0");
+    tracing::info!("Starting Tuya Smart Taskbar v2.2.0");
 
     let config_manager = ConfigManager::new();
     let shared_client = create_shared_client();
@@ -401,6 +460,7 @@ fn main() {
     let status_cache: DeviceStatusCache = Arc::new(RwLock::new(HashMap::new()));
     let menu_update_lock: MenuUpdateLock = Arc::new(Mutex::new(()));
     let update_state: SharedUpdateState = create_update_state();
+    let menu_registry: MenuItemRegistry = tray::create_menu_registry();
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -438,6 +498,7 @@ fn main() {
             let status_cache_for_event = status_cache.clone();
             let menu_lock_for_event = menu_update_lock.clone();
             let update_state_for_event = update_state.clone();
+            let registry_for_event = menu_registry.clone();
             let _tray = TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .tooltip("Tuya Smart Taskbar")
@@ -449,6 +510,7 @@ fn main() {
                         status_cache_for_event.clone(),
                         menu_lock_for_event.clone(),
                         update_state_for_event.clone(),
+                        registry_for_event.clone(),
                     );
                 })
                 .build(app)?;
@@ -457,6 +519,7 @@ fn main() {
             let cache_for_init = status_cache.clone();
             let lock_for_init = menu_update_lock.clone();
             let update_state_for_init = update_state.clone();
+            let registry_for_init = menu_registry.clone();
             tauri::async_runtime::spawn(async move {
                 update_tray_menu(
                     &app_handle,
@@ -464,6 +527,7 @@ fn main() {
                     &cache_for_init,
                     &lock_for_init,
                     &update_state_for_init,
+                    &registry_for_init,
                 )
                 .await;
             });
@@ -472,6 +536,7 @@ fn main() {
             let cache_for_startup = status_cache.clone();
             let lock_for_startup = menu_update_lock.clone();
             let update_state_for_startup = update_state.clone();
+            let registry_for_startup = menu_registry.clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(Duration::from_secs(3)).await;
                 check_and_notify_update(
@@ -479,6 +544,7 @@ fn main() {
                     &update_state_for_startup,
                     Some(&cache_for_startup),
                     Some(&lock_for_startup),
+                    Some(&registry_for_startup),
                 )
                 .await;
             });
@@ -488,6 +554,7 @@ fn main() {
             let cache_for_loop = status_cache.clone();
             let lock_for_loop = menu_update_lock.clone();
             let update_state_for_loop = update_state.clone();
+            let registry_for_loop = menu_registry.clone();
             tauri::async_runtime::spawn(async move {
                 let mut interval = tokio::time::interval(Duration::from_secs(10));
                 loop {
@@ -497,12 +564,13 @@ fn main() {
                     }
 
                     let counter = UPDATE_CHECK_COUNTER.fetch_add(1, Ordering::Relaxed);
-                    if counter % UPDATE_CHECK_INTERVAL == 0 && counter > 0 {
+                    if counter > 0 && counter.is_multiple_of(UPDATE_CHECK_INTERVAL) {
                         check_and_notify_update(
                             &app_handle,
                             &update_state_for_loop,
                             Some(&cache_for_loop),
                             Some(&lock_for_loop),
+                            Some(&registry_for_loop),
                         )
                         .await;
                     }
@@ -515,6 +583,7 @@ fn main() {
                             &cache_for_loop,
                             &lock_for_loop,
                             &update_state_for_loop,
+                            &registry_for_loop,
                         ),
                     )
                     .await;

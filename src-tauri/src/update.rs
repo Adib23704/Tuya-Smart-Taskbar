@@ -1,13 +1,13 @@
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use serde::Serialize;
 use tauri::AppHandle;
 use tokio::sync::RwLock;
 
-const UPDATE_CHECK_URL: &str = "https://raw.githubusercontent.com/Adib23704/Tuya-Smart-Taskbar/refs/heads/master/package.json";
+const UPDATE_CHECK_URL: &str =
+    "https://raw.githubusercontent.com/Adib23704/Tuya-Smart-Taskbar/refs/heads/master/package.json";
 const DOWNLOAD_URL: &str = "https://github.com/Adib23704/Tuya-Smart-Taskbar/releases/latest";
-const CHECK_INTERVAL: Duration = Duration::from_secs(3600);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,7 +22,6 @@ pub struct UpdateInfo {
 pub struct UpdateState {
     pub update_available: bool,
     pub latest_version: Option<String>,
-    pub last_check: Option<Instant>,
     pub notification_shown: bool,
 }
 
@@ -87,11 +86,8 @@ pub async fn check_for_update(app: &AppHandle) -> Option<UpdateInfo> {
 }
 
 fn is_newer_version(latest: &str, current: &str) -> bool {
-    let parse_version = |v: &str| -> Vec<u32> {
-        v.split('.')
-            .filter_map(|s| s.parse::<u32>().ok())
-            .collect()
-    };
+    let parse_version =
+        |v: &str| -> Vec<u32> { v.split('.').filter_map(|s| s.parse::<u32>().ok()).collect() };
 
     let latest_parts = parse_version(latest);
     let current_parts = parse_version(current);
@@ -108,25 +104,13 @@ fn is_newer_version(latest: &str, current: &str) -> bool {
     latest_parts.len() > current_parts.len()
 }
 
-pub async fn should_check_for_update(state: &SharedUpdateState) -> bool {
-    let guard = state.read().await;
-    match guard.last_check {
-        None => true,
-        Some(last) => last.elapsed() >= CHECK_INTERVAL,
-    }
-}
-
-pub async fn update_state(
-    state: &SharedUpdateState,
-    update_info: &UpdateInfo,
-) -> (bool, bool) {
+pub async fn update_state(state: &SharedUpdateState, update_info: &UpdateInfo) -> (bool, bool) {
     let mut guard = state.write().await;
     let was_available = guard.update_available;
     let notification_shown = guard.notification_shown;
 
     guard.update_available = update_info.available;
     guard.latest_version = Some(update_info.latest_version.clone());
-    guard.last_check = Some(Instant::now());
 
     let is_new_detection = update_info.available && !was_available;
     let should_notify = is_new_detection && !notification_shown;
@@ -136,15 +120,6 @@ pub async fn update_state(
     }
 
     (is_new_detection, should_notify)
-}
-
-pub async fn get_update_info(state: &SharedUpdateState) -> Option<(bool, String)> {
-    let guard = state.read().await;
-    if guard.update_available {
-        guard.latest_version.clone().map(|v| (true, v))
-    } else {
-        None
-    }
 }
 
 pub fn get_download_url() -> &'static str {

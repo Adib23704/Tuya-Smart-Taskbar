@@ -24,13 +24,13 @@ pub struct TuyaDevice {
     pub icon: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TuyaDeviceStatus {
     pub code: String,
     pub value: TuyaValue,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TuyaValue {
     Boolean(bool),

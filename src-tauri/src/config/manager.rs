@@ -70,11 +70,17 @@ impl ConfigManager {
     }
 
     pub fn get(&self) -> AppConfig {
-        self.config.read().unwrap().clone()
+        self.config
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clone()
     }
 
     pub fn get_user_id(&self) -> Option<String> {
-        let config = self.config.read().unwrap();
+        let config = self
+            .config
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if config.user_id.is_empty() {
             None
         } else {
@@ -88,7 +94,10 @@ impl ConfigManager {
         }
 
         {
-            let mut config = self.config.write().unwrap();
+            let mut config = self
+                .config
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             *config = new_config.clone();
         }
 
@@ -100,7 +109,10 @@ impl ConfigManager {
     }
 
     pub fn is_configured(&self) -> bool {
-        self.config.read().unwrap().is_configured()
+        self.config
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_configured()
     }
 }
 
@@ -169,13 +181,11 @@ pub fn set_auto_launch(enabled: bool) -> Result<(), AppError> {
             .enable()
             .map_err(|e| AppError::Config(e.to_string()))?;
         tracing::info!("Auto-launch enabled");
-    } else {
-        if auto_launch.is_enabled().unwrap_or(false) {
-            auto_launch
-                .disable()
-                .map_err(|e| AppError::Config(e.to_string()))?;
-            tracing::info!("Auto-launch disabled");
-        }
+    } else if auto_launch.is_enabled().unwrap_or(false) {
+        auto_launch
+            .disable()
+            .map_err(|e| AppError::Config(e.to_string()))?;
+        tracing::info!("Auto-launch disabled");
     }
 
     Ok(())

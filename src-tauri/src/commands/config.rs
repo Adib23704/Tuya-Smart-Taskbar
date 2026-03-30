@@ -12,7 +12,7 @@ pub async fn save_config(
 ) -> CommandResult<()> {
     config_manager
         .save(&new_config)
-        .map_err(|e| SerializableError::from(e))?;
+        .map_err(SerializableError::from)?;
 
     if let Err(e) = set_auto_launch(new_config.run_on_startup) {
         tracing::warn!("Failed to set auto-launch: {}", e);

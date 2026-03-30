@@ -1,14 +1,11 @@
+use std::sync::atomic::{AtomicI64, AtomicU32, Ordering};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU32, AtomicI64, Ordering};
-use std::time::Duration;
 use tokio::sync::RwLock;
 
 use super::auth::SignedHeaders;
 use super::types::{TokenResponse, TokenState, TuyaApiResponse};
 use crate::error::AppError;
 
-const TOKEN_REQUEST_TIMEOUT_SECS: u64 = 15;
-const TOKEN_CONNECT_TIMEOUT_SECS: u64 = 10;
 const MAX_CONSECUTIVE_FAILURES: u32 = 5;
 const FAILURE_COOLDOWN_SECS: i64 = 60;
 
@@ -23,13 +20,12 @@ pub struct TokenManager {
 }
 
 impl TokenManager {
-    pub fn new(client_id: String, secret: String, base_url: String) -> Self {
-        let http_client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(TOKEN_REQUEST_TIMEOUT_SECS))
-            .connect_timeout(Duration::from_secs(TOKEN_CONNECT_TIMEOUT_SECS))
-            .build()
-            .expect("Failed to build HTTP client for token manager");
-
+    pub fn new(
+        client_id: String,
+        secret: String,
+        base_url: String,
+        http_client: reqwest::Client,
+    ) -> Self {
         Self {
             client_id,
             secret,
@@ -42,9 +38,9 @@ impl TokenManager {
     }
 
     fn check_rate_limit(&self) -> Result<(), AppError> {
-        let failures = self.consecutive_failures.load(Ordering::Relaxed);
+        let failures = self.consecutive_failures.load(Ordering::SeqCst);
         if failures >= MAX_CONSECUTIVE_FAILURES {
-            let last_failure = self.last_failure_time.load(Ordering::Relaxed);
+            let last_failure = self.last_failure_time.load(Ordering::SeqCst);
             let now = chrono::Utc::now().timestamp();
             let cooldown_remaining = FAILURE_COOLDOWN_SECS - (now - last_failure);
 
@@ -59,21 +55,19 @@ impl TokenManager {
                     cooldown_remaining
                 )));
             }
-            self.consecutive_failures.store(0, Ordering::Relaxed);
+            self.consecutive_failures.store(0, Ordering::SeqCst);
         }
         Ok(())
     }
 
     fn record_success(&self) {
-        self.consecutive_failures.store(0, Ordering::Relaxed);
+        self.consecutive_failures.store(0, Ordering::SeqCst);
     }
 
     fn record_failure(&self) {
-        self.consecutive_failures.fetch_add(1, Ordering::Relaxed);
-        self.last_failure_time.store(
-            chrono::Utc::now().timestamp(),
-            Ordering::Relaxed,
-        );
+        self.consecutive_failures.fetch_add(1, Ordering::SeqCst);
+        self.last_failure_time
+            .store(chrono::Utc::now().timestamp(), Ordering::SeqCst);
     }
 
     pub async fn get_access_token(&self) -> Result<String, AppError> {
@@ -126,8 +120,13 @@ impl TokenManager {
         let path = "/v1.0/token";
         let query_params = [("grant_type", "1")];
 
-        let headers =
-            SignedHeaders::for_token_request(&self.client_id, &self.secret, "GET", path, Some(&query_params));
+        let headers = SignedHeaders::for_token_request(
+            &self.client_id,
+            &self.secret,
+            "GET",
+            path,
+            Some(&query_params),
+        );
 
         let url = format!("{}{}?grant_type=1", self.base_url, path);
 
@@ -195,9 +194,10 @@ impl TokenManager {
             .send()
             .await?;
 
-        let api_response: TuyaApiResponse<TokenResponse> = response.json().await.map_err(|e| {
-            AppError::Parse(e.to_string())
-        })?;
+        let api_response: TuyaApiResponse<TokenResponse> = response
+            .json()
+            .await
+            .map_err(|e| AppError::Parse(e.to_string()))?;
 
         if !api_response.success {
             return Err(AppError::Api {

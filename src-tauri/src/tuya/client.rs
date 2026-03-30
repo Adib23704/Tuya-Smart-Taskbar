@@ -31,7 +31,12 @@ impl TuyaClient {
             .expect("Failed to build HTTP client");
 
         Self {
-            token_manager: TokenManager::new(client_id.clone(), secret.clone(), base_url.clone()),
+            token_manager: TokenManager::new(
+                client_id.clone(),
+                secret.clone(),
+                base_url.clone(),
+                http_client.clone(),
+            ),
             http_client,
             base_url,
             client_id,
@@ -96,17 +101,14 @@ impl TuyaClient {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| {
-            AppError::Network("Request failed after all retries".to_string())
-        }))
+        Err(last_error
+            .unwrap_or_else(|| AppError::Network("Request failed after all retries".to_string())))
     }
 
     fn is_retryable_error(error: &AppError) -> bool {
         match error {
             AppError::Network(_) => true,
-            AppError::Api { code, .. } => {
-                *code >= 500
-            }
+            AppError::Api { code, .. } => *code >= 500,
             _ => false,
         }
     }
@@ -136,13 +138,7 @@ impl TuyaClient {
                 sorted.sort_by(|a, b| a.0.cmp(b.0));
                 let qs = sorted
                     .iter()
-                    .map(|(k, v)| {
-                        format!(
-                            "{}={}",
-                            urlencoding::encode(k),
-                            urlencoding::encode(v)
-                        )
-                    })
+                    .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
                     .collect::<Vec<_>>()
                     .join("&");
                 format!("{}{}?{}", self.base_url, path, qs)
@@ -160,7 +156,10 @@ impl TuyaClient {
 
         request_builder = request_builder
             .header("client_id", &headers.client_id)
-            .header("access_token", headers.access_token.as_deref().unwrap_or(""))
+            .header(
+                "access_token",
+                headers.access_token.as_deref().unwrap_or(""),
+            )
             .header("sign", &headers.sign)
             .header("sign_method", &headers.sign_method)
             .header("t", &headers.t)

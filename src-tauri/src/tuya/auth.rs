@@ -18,7 +18,8 @@ pub fn sha256_hex(content: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
-pub const EMPTY_BODY_HASH: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+pub const EMPTY_BODY_HASH: &str =
+    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 pub fn build_string_to_sign(
     method: &str,
