@@ -90,12 +90,14 @@ pnpm build
 The built executable will be in `src-tauri/target/release/`.
 
 
-### Linux (Xubuntu) — Prerequisites & Setup
+### Linux (Xubuntu) - Prerequisites & Setup
 
 On Xubuntu (Ubuntu-based), install system dependencies and toolchains:
 
 ```bash
-scripts/setup-xubuntu.sh
+cripts/setup-xubuntu.sh
+
+
 ```
 
 This script installs all required system packages, Node.js, pnpm, and Rust. Then, from the project root:
@@ -106,13 +108,7 @@ pnpm dev    # run in development
 pnpm build  # production build
 ```
 
-Linux bundle targets (e.g. `appimage`, `deb`) are already configured in `src-tauri/tauri.conf.json`; adjust them there only if you need different formats.
-
-Note: if the build fails with an error about a missing `src-tauri/icons/icon.png`, generate it from the provided `icon.ico`. You can, for example, open `src-tauri/icons/icon.ico` in an image editor and export it as `src-tauri/icons/icon.png`, or use a tool like ImageMagick:
-
-```bash
-convert src-tauri/icons/icon.ico[0] -resize 512x512 src-tauri/icons/icon.png
-```
+Linux bundle targets (`appimage`, `deb`, `rpm`) are already configured in `src-tauri/tauri.conf.json`; adjust them there only if you need different formats.
 
 ## Setup
 
@@ -184,11 +180,9 @@ Click any control to toggle or change its state. The menu updates automatically 
 
 ## Contributing
 
-This is a fork with Linux (Xubuntu) support added and tested. Please use the `linux-xubuntu-support` branch for Linux-specific changes.
-
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository (or use this fork)
+1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)

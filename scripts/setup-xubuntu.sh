@@ -12,14 +12,12 @@ echo "Updating apt and installing system packages..."
 sudo apt update
 sudo apt install -y build-essential curl git pkg-config libssl-dev libgtk-3-dev libayatana-appindicator3-dev libwebkit2gtk-4.0-dev
 
-echo "Installing Node.js (18.x) via NodeSource (APT repository)..."
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/nodesource.gpg
-echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list > /dev/null
-sudo apt update
+echo "Installing Node.js (24.x LTS) via NodeSource (APT repository)..."
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-PNPM_VERSION="${PNPM_VERSION:-10.24.0}"
-echo "Enabling corepack and activating pnpm ${PNPM_VERSION} (project expects pnpm@10.24.0)..."
+PNPM_VERSION="${PNPM_VERSION:-10.33.0}"
+echo "Enabling corepack and activating pnpm ${PNPM_VERSION}..."
 corepack enable || true
 corepack prepare "pnpm@${PNPM_VERSION}" --activate || sudo npm i -g "pnpm@${PNPM_VERSION}"
 
