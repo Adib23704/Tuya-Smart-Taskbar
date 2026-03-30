@@ -1,13 +1,20 @@
 {
 	"name": "tuya-smart-taskbar",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"private": true,
-	"description": "Windows Taskbar App for controlling Tuya Smart Devices",
+	"description": "System tray app for controlling Tuya Smart Devices",
 	"type": "module",
 	"scripts": {
 		"tauri": "tauri",
 		"dev": "tauri dev",
-		"build": "tauri build"
+		"build": "tauri build",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"lint:rust": "cd src-tauri && cargo clippy -- -D warnings",
+		"format": "biome format . --write",
+		"format:check": "biome format .",
+		"format:rust": "cd src-tauri && cargo fmt",
+		"validate": "biome check . && cd src-tauri && cargo fmt --check && cargo clippy -- -D warnings"
 	},
 	"repository": {
 		"type": "git",
@@ -16,7 +23,8 @@
 	"author": "Zahin A. Adib <adib23704@gmail.com> (https://adibdev.me/)",
 	"license": "MIT",
 	"devDependencies": {
-		"@tauri-apps/cli": "^2"
+		"@biomejs/biome": "^2.4.10",
+		"@tauri-apps/cli": "^2.10.1"
 	},
-	"packageManager": "pnpm@10.24.0"
+	"packageManager": "pnpm@10.33.0"
 }

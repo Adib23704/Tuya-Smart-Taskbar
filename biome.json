@@ -1,0 +1,35 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"style": {
+				"noDescendingSpecificity": "off"
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 120
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"trailingCommas": "es5",
+			"semicolons": "always",
+			"arrowParentheses": "always"
+		}
+	},
+	"files": {
+		"includes": ["**", "!**/node_modules", "!**/src-tauri/target", "!**/src-tauri/gen", "!**/pnpm-lock.yaml"]
+	}
+}

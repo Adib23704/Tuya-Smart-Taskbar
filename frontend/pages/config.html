@@ -402,15 +402,15 @@
 			}
 
 			button.success {
-				background-color: var(--success) !important;
-				border-color: var(--success) !important;
-				color: white !important;
+				background-color: var(--success);
+				border-color: var(--success);
+				color: white;
 			}
 
 			button.error {
-				background-color: var(--error) !important;
-				border-color: var(--error) !important;
-				color: white !important;
+				background-color: var(--error);
+				border-color: var(--error);
+				color: white;
 			}
 
 			/* Loading Spinner */
@@ -466,7 +466,7 @@
 		<div class="container">
 			<div class="header">
 				<div class="logo">
-					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 						<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
 					</svg>
 				</div>
@@ -510,7 +510,7 @@
 								spellcheck="false"
 							/>
 							<button type="button" class="password-toggle" id="toggleSecret" aria-label="Toggle password visibility">
-								<svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
 									<circle cx="12" cy="12" r="3"></circle>
 								</svg>
@@ -535,19 +535,19 @@
 							<input type="checkbox" id="runOnStartup" checked onclick="event.stopPropagation()" />
 							<span class="checkmark"></span>
 						</div>
-						<label for="runOnStartup" onclick="event.stopPropagation()">Run on Windows startup</label>
+						<label for="runOnStartup" onclick="event.stopPropagation()">Run on system startup</label>
 					</div>
 
 					<div class="button-group">
 						<button id="test-btn" type="button" class="test-btn">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
 								<polyline points="22 4 12 14.01 9 11.01"></polyline>
 							</svg>
 							<span>Test</span>
 						</button>
 						<button id="save-btn" type="button" class="save-btn">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
 								<polyline points="17 21 17 13 7 13 7 21"></polyline>
 								<polyline points="7 3 7 8 15 8"></polyline>
@@ -557,7 +557,7 @@
 					</div>
 
 					<div class="status-message" id="statusMessage">
-						<svg id="statusIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<svg id="statusIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 							<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
 							<polyline points="22 4 12 14.01 9 11.01"></polyline>
 						</svg>
@@ -583,7 +583,7 @@
 			const statusIcon = document.getElementById('statusIcon');
 
 			function detectTheme() {
-				if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
 					document.documentElement.setAttribute('data-theme', 'dark');
 				} else {
 					document.documentElement.removeAttribute('data-theme');
@@ -635,7 +635,7 @@
 			});
 
 			function showStatus(message, isSuccess) {
-				statusMessage.className = 'status-message show ' + (isSuccess ? 'success' : 'error');
+				statusMessage.className = `status-message show ${isSuccess ? 'success' : 'error'}`;
 				statusText.textContent = message;
 
 				if (isSuccess) {

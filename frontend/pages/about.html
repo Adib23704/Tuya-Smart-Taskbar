@@ -357,19 +357,19 @@
 			button:disabled {
 				opacity: 0.7;
 				cursor: not-allowed;
-				transform: none !important;
+				transform: none;
 			}
 
 			button.success {
-				background: var(--success) !important;
+				background: var(--success);
 			}
 
 			button.error {
-				background: var(--error) !important;
+				background: var(--error);
 			}
 
 			button.has-update {
-				background: linear-gradient(135deg, var(--success) 0%, #059669 100%) !important;
+				background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
 				animation: pulse 2s infinite;
 			}
 
@@ -415,7 +415,7 @@
 		<div class="container">
 			<div class="header">
 				<div class="logo">
-					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 						<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
 					</svg>
 				</div>
@@ -442,7 +442,7 @@
 				<div class="info-section">
 					<div class="info-label">Description</div>
 					<div class="info-content">
-						Control your Tuya smart home devices directly from the Windows taskbar.
+						Control your Tuya smart home devices directly from your system tray.
 						Fast, lightweight, and always accessible.
 					</div>
 				</div>
@@ -452,7 +452,7 @@
 					<div class="links-grid">
 						<div class="link-item" id="githubLink">
 							<div class="link-icon">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
 								</svg>
 							</div>
@@ -460,7 +460,7 @@
 						</div>
 						<div class="link-item" id="websiteLink">
 							<div class="link-icon">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<circle cx="12" cy="12" r="10"></circle>
 									<line x1="2" y1="12" x2="22" y2="12"></line>
 									<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
@@ -473,7 +473,7 @@
 
 				<div class="button-group">
 					<button id="check-update-btn" type="button" class="update-btn">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 							<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
 							<path d="M3 3v5h5"></path>
 							<path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
@@ -497,7 +497,7 @@
 			const websiteLink = document.getElementById('websiteLink');
 
 			function detectTheme() {
-				if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
 					document.documentElement.setAttribute('data-theme', 'dark');
 				} else {
 					document.documentElement.removeAttribute('data-theme');
