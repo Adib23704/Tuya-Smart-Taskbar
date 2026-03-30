@@ -5,7 +5,7 @@
 <h1 align="center">Tuya Smart Taskbar</h1>
 
 <p align="center">
-  <strong>Control your Tuya smart home devices directly from the Windows taskbar</strong>
+  <strong>Control your Tuya smart home devices directly from your system tray (Windows &amp; Linux/Xubuntu supported)</strong>
 </p>
 
 <p align="center">
@@ -24,17 +24,17 @@
 
 ## About
 
-Tuya Smart Taskbar is a lightweight Windows system tray application that lets you control your Tuya-compatible smart home devices without opening any app or browser. Built with [Tauri](https://tauri.app/) for minimal resource usage and maximum performance.
+Tuya Smart Taskbar is a lightweight system tray application for Windows and Linux (Xubuntu tested) that lets you control your Tuya-compatible smart home devices without opening any app or browser. Built with [Tauri](https://tauri.app/) for minimal resource usage and maximum performance.
 
 ## Features
 
-- **System Tray Integration** - Lives quietly in your taskbar, always one click away
+- **System Tray Integration** - Lives quietly in your taskbar (Windows) or tray (Linux), always one click away
 - **Real-time Device Control** - Toggle switches, adjust fan speeds, set temperatures, and more
 - **Auto-refresh** - Device states update automatically every 5 seconds
-- **Auto-launch** - Optionally start with Windows
+- **Auto-launch** - Optionally start with Windows (Linux auto-launch coming soon)
 - **Lightweight** - Minimal memory footprint thanks to Tauri's Rust backend
 - **Secure** - HMAC-SHA256 signed API requests, credentials stored locally
-- **Theme Support** - Respects your Windows light/dark theme preference
+- **Theme Support** - Respects your system light/dark theme preference
 
 ## Supported Devices & Controls
 
@@ -88,6 +88,31 @@ pnpm build
 ```
 
 The built executable will be in `src-tauri/target/release/`.
+
+
+### Linux (Xubuntu) — Prerequisites & Setup
+
+On Xubuntu (Ubuntu-based), install system dependencies and toolchains:
+
+```bash
+scripts/setup-xubuntu.sh
+```
+
+This script installs all required system packages, Node.js, pnpm, and Rust. Then, from the project root:
+
+```bash
+pnpm install
+pnpm dev    # run in development
+pnpm build  # production build
+```
+
+Linux bundle targets (e.g. `appimage`, `deb`) are already configured in `src-tauri/tauri.conf.json`; adjust them there only if you need different formats.
+
+Note: if the build fails with an error about a missing `src-tauri/icons/icon.png`, generate it from the provided `icon.ico`. You can, for example, open `src-tauri/icons/icon.ico` in an image editor and export it as `src-tauri/icons/icon.png`, or use a tool like ImageMagick:
+
+```bash
+convert src-tauri/icons/icon.ico[0] -resize 512x512 src-tauri/icons/icon.png
+```
 
 ## Setup
 
@@ -156,11 +181,14 @@ Click any control to toggle or change its state. The menu updates automatically 
 - **HTTP Client**: reqwest with async/await
 - **Authentication**: HMAC-SHA256 request signing
 
+
 ## Contributing
+
+This is a fork with Linux (Xubuntu) support added and tested. Please use the `linux-xubuntu-support` branch for Linux-specific changes.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
+1. Fork the repository (or use this fork)
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)

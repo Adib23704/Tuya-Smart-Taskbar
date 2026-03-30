@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "This script installs common system dependencies required to build/run Tuya Smart Taskbar on Xubuntu (Ubuntu/Debian)."
+echo "Review the commands before running. Run with sudo when prompted."
+
+if [ "$EUID" -ne 0 ]; then
+  echo "Note: Some commands below require sudo. The script will invoke sudo where necessary."
+fi
+
+echo "Updating apt and installing system packages..."
+sudo apt update
+sudo apt install -y build-essential curl git pkg-config libssl-dev libgtk-3-dev libayatana-appindicator3-dev libwebkit2gtk-4.0-dev
+
+echo "Installing Node.js (18.x) via NodeSource (APT repository)..."
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/nodesource.gpg
+echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list > /dev/null
+sudo apt update
+sudo apt-get install -y nodejs
+
+PNPM_VERSION="${PNPM_VERSION:-10.24.0}"
+echo "Enabling corepack and activating pnpm ${PNPM_VERSION} (project expects pnpm@10.24.0)..."
+corepack enable || true
+corepack prepare "pnpm@${PNPM_VERSION}" --activate || sudo npm i -g "pnpm@${PNPM_VERSION}"
+
+if ! command -v rustc >/dev/null 2>&1; then
+  echo "Installing Rust (rustup)..."
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
+echo "Done. From the project root run:"
+echo "  pnpm install"
+echo "  pnpm dev    # development"
+echo "  pnpm build  # production build"
+
+echo "If you see errors about missing webkit or GTK headers, ensure 'libwebkit2gtk-4.0-dev' and 'libgtk-3-dev' are installed."
+
+exit 0
