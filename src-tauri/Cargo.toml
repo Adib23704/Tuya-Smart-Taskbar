@@ -42,4 +42,5 @@ panic = "abort"
 codegen-units = 1
 lto = true
 opt-level = "s"
-strip = true
+# strip = true breaks AppImage bundling on Linux (tauri-apps/tauri#14796)
+strip = false

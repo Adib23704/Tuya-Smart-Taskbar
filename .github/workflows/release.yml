@@ -70,7 +70,6 @@ jobs:
       - name: Build
         run: pnpm build
         env:
-          NO_STRIP: true
           APPIMAGE_EXTRACT_AND_RUN: 1
 
       - name: Upload artifacts
