@@ -38,26 +38,26 @@ Tuya Smart Taskbar is a lightweight system tray application for Windows and Linu
 
 ## Supported Devices & Controls
 
-| Control Type | Supported Operations |
-|--------------|---------------------|
-| **Switches & Lights** | On/Off toggle |
-| **Smart Fans** | 5-level speed control |
-| **Air Conditioners** | Temperature (16-30°C), Fan speed (4 levels), Mode (Auto/Cold/Dry/Wind) |
-| **Smart Outlets** | On/Off toggle |
+| Control Type          | Supported Operations                                                   |
+| --------------------- | ---------------------------------------------------------------------- |
+| **Switches & Lights** | On/Off toggle                                                          |
+| **Smart Fans**        | 5-level speed control                                                  |
+| **Air Conditioners**  | Temperature (16-30°C), Fan speed (4 levels), Mode (Auto/Cold/Dry/Wind) |
+| **Smart Outlets**     | On/Off toggle                                                          |
 
 > Any Tuya device with standard status codes will work. The app dynamically builds menus based on each device's capabilities.
 
 ## Supported Regions
 
-| Region | API Endpoint |
-|--------|--------------|
-| Central Europe | `openapi.tuyaeu.com` |
-| Western Europe | `openapi-weaz.tuyaeu.com` |
-| China | `openapi.tuyacn.com` |
-| Western America | `openapi.tuyaus.com` |
+| Region          | API Endpoint              |
+| --------------- | ------------------------- |
+| Central Europe  | `openapi.tuyaeu.com`      |
+| Western Europe  | `openapi-weaz.tuyaeu.com` |
+| China           | `openapi.tuyacn.com`      |
+| Western America | `openapi.tuyaus.com`      |
 | Eastern America | `openapi-ueaz.tuyaus.com` |
-| India | `openapi.tuyain.com` |
-| Singapore | `openapi-sg.iotbing.com` |
+| India           | `openapi.tuyain.com`      |
+| Singapore       | `openapi-sg.iotbing.com`  |
 
 ## Installation
 
@@ -68,6 +68,7 @@ Download the latest installer from the [Releases](https://github.com/Adib23704/T
 ### Build from Source
 
 **Prerequisites:**
+
 - [Node.js](https://nodejs.org/) (v18+)
 - [pnpm](https://pnpm.io/) (v10+)
 - [Rust](https://rustup.rs/) (stable)
@@ -88,7 +89,6 @@ pnpm build
 ```
 
 The built executable will be in `src-tauri/target/release/`.
-
 
 ### Linux (Xubuntu) - Prerequisites & Setup
 
@@ -177,7 +177,6 @@ Click any control to toggle or change its state. The menu updates automatically 
 - **HTTP Client**: reqwest with async/await
 - **Authentication**: HMAC-SHA256 request signing
 
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -187,6 +186,26 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## Privacy
+
+Tuya Smart Taskbar does **not** collect, store, or transmit any personal data. All API credentials are stored locally on your device in a platform-specific configuration file. Network requests are made exclusively to the Tuya Cloud API endpoints you configure, solely to control your smart home devices at your request. No analytics, telemetry, or third-party tracking is included.
+
+## Code Signing Policy
+
+Release binaries are signed to verify authenticity and integrity.
+
+| Role          | Responsibility                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| **Author**    | [Zahin A. Adib](https://github.com/Adib23704) - development, maintenance, signing approval |
+| **Reviewers** | All external contributions are reviewed before merge                                       |
+
+[sign-path-io-url]: https://signpath.io/
+[sign-path-foundation-url]: https://signpath.org/
+
+| Logo | Description |
+| :-----: | ----- |
+| [![SignPath logo](.github/images/signpath-logo.png)][sign-path-io-url] | Free code signing provided by [SignPath.io][sign-path-io-url], certificate by [SignPath Foundation][sign-path-foundation-url] |
 
 ## License
 

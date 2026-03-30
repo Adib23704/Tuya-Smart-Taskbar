@@ -76,7 +76,7 @@ async fn update_tray_menu(
         }
     }
 
-    // Unconfigured path — no registry interaction needed
+    // Unconfigured path - no registry interaction needed
     if !config_manager.is_configured() {
         let menu = tray::build_unconfigured_menu(app, update_state).await;
         if let Ok(menu) = menu {
@@ -90,7 +90,7 @@ async fn update_tray_menu(
         return;
     }
 
-    // Configured path — build device menu (returns 3-tuple)
+    // Configured path - build device menu (returns 3-tuple)
     match tray::build_device_menu_with_cache(app, &client, &config_manager, update_state).await {
         Ok((menu, new_statuses, new_registry_entries)) => {
             let old_cache = status_cache.read().await.clone();
@@ -107,7 +107,7 @@ async fn update_tray_menu(
                         tray::update_menu_items_in_place(&registry, &old_cache, &new_statuses);
                     tracing::debug!("In-place update: {} items changed", updated);
                 }
-                // Update cache only — do NOT set_menu
+                // Update cache only - do NOT set_menu
                 let mut cache = status_cache.write().await;
                 *cache = new_statuses;
             } else {

@@ -5,10 +5,10 @@ All notable changes to Tuya Smart Taskbar will be documented in this file.
 ## [2.2.0] - 2026-03-31
 
 ### Added
+- **Linux (Xubuntu) support** - Full cross-platform support with Linux bundle targets (AppImage, Deb, RPM), setup script, and PNG tray icon. ([#1](https://github.com/Adib23704/Tuya-Smart-Taskbar/pull/1))
 - **Non-disruptive menu updates** - Auto-refresh now updates device states in-place without closing the open context menu. Check marks toggle in real-time while browsing the tray menu.
 - **"Refresh Devices" menu item** - Manual refresh option in both the device menu and error menu, allowing users to retry after transient failures.
 - **Offline device feedback** - Shows "No devices found" or "All N device(s) offline" in the tray menu when no online devices are available.
-- **Linux (Xubuntu) support** - Full cross-platform support with Linux bundle targets (AppImage, Deb, RPM), setup script, and PNG tray icon. ([#1](https://github.com/Adib23704/Tuya-Smart-Taskbar/pull/1))
 - **Biome linter/formatter** - Added `biome.json` configuration and lint/format/validate npm scripts for frontend code quality.
 - **SVG accessibility** - All decorative SVGs now include `aria-hidden="true"` for accessibility compliance.
 
