@@ -68,7 +68,10 @@ jobs:
           workspaces: src-tauri
 
       - name: Build
-        run: NO_STRIP=true pnpm build
+        run: pnpm build
+        env:
+          NO_STRIP: true
+          APPIMAGE_EXTRACT_AND_RUN: 1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
