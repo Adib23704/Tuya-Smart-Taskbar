@@ -101,6 +101,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: artifacts
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
@@ -108,5 +109,5 @@ jobs:
           tag: ${{ steps.meta.outputs.tag }}
           name: Tuya Smart Taskbar ${{ steps.meta.outputs.tag }}
           bodyFile: /tmp/changelog.md
-          artifacts: "artifacts/windows-builds/**/*,artifacts/linux-builds/**/*"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "artifacts/**/*.msi,artifacts/**/*-setup.exe,artifacts/**/*.deb,artifacts/**/*.rpm"
+          token: ${{ secrets.RELEASE_TOKEN }}
