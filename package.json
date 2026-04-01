@@ -1,6 +1,6 @@
 {
 	"name": "tuya-smart-taskbar",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"private": true,
 	"description": "System tray app for controlling Tuya Smart Devices",
 	"type": "module",
